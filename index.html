@@ -31,7 +31,8 @@ button,input,select{font:inherit}
 .fac h4{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--graf);font-weight:600;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none}
 .fac h4 a{font-size:10.5px;color:var(--vermelho);text-transform:none;letter-spacing:0;cursor:pointer}
 .fac .ops{margin-top:6px;max-height:210px;overflow-y:auto}
-.fac.fech .ops,.fac.fech .fsr{display:none}
+.fac.fech .ops,.fac.fech .fsr,.fac.fech .fbt{display:none}
+.fbt{display:flex;gap:10px;margin-top:5px}.fbt a{font-size:11px;color:var(--vinho);cursor:pointer;text-decoration:underline;text-decoration-color:var(--rl)}.fbt a:hover{color:var(--vermelho)}
 .op{display:flex;align-items:center;gap:7px;padding:3px 4px;border-radius:5px;cursor:pointer;font-size:12.3px;line-height:1.25}
 .op:hover{background:var(--rosa)}.op input{accent-color:var(--vinho)}
 .op span.l{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.op span.n{color:var(--graf);font-variant-numeric:tabular-nums;font-size:11.5px}
@@ -168,7 +169,7 @@ button,input,select{font:inherit}
 <div class="toast" id="toast"></div>
 <div id="prt"></div>
 <script>
-const VERSAO='1.1.0';
+const VERSAO='1.2.0';
 const SB={url:'https://jspfqktrbimrarimpzgh.supabase.co',key:'sb_publishable_v5q-FJsZbsufq31dqi3zlA_ddzJQ_f-'};
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -223,21 +224,29 @@ const STOP=new Set(['DE','DA','DO','DAS','DOS','E']);
 const nm=s=>String(s||'').replace(/�/g,'?').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z? ]/g,' ').replace(/\s+/g,' ').trim();
 const toks=s=>nm(s).split(' ').filter(t=>t.length>=2&&!STOP.has(t));
 const teq=(a,b)=>a===b||(a.length===b.length&&[...a].every((c,i)=>c===b[i]||c==='?'||b[i]==='?'));
-const RANK={IGUAL:4,'IGUAL (grafia)':3,'PROVÁVEL':2,'SÓ 1º NOME':1,'DIFERENTE':0};
+const RANK={IGUAL:6,'IGUAL (grafia)':5,'NOME AMPLIADO':4,'NOME ALTERADO':3,'SÓ 1º NOME':1,'DIFERENTE':0};
 function lev1(a,b){if(a===b)return true;if(Math.min(a.length,b.length)<4||Math.abs(a.length-b.length)>1)return false;
   let i=0,j=0,d=0;while(i<a.length&&j<b.length){if(a[i]===b[j]||a[i]==='?'||b[j]==='?'){i++;j++;continue}if(++d>1)return false;
     if(a.length>b.length)i++;else if(b.length>a.length)j++;else{i++;j++}}return d+(a.length-i)+(b.length-j)<=1}
 const feq=(a,b)=>teq(a,b)||lev1(a,b);
+/* compara duas pessoas pelo nome:
+   IGUAL · IGUAL (grafia) = 1 letra de diferença · NOME AMPLIADO = um nome contém o outro inteiro (ex.: casou e ganhou "SILVA")
+   NOME ALTERADO = mesmo 1º nome e mais um nome em comum, com sobrenome trocado · SÓ 1º NOME · DIFERENTE */
 function cmpPar(x,y){const A=toks(x),B=toks(y);if(!A.length||!B.length)return null;
   const exa=A.filter(a=>B.some(b=>teq(a,b))).length;
   if(exa===A.length&&exa===B.length)return 'IGUAL';
-  const com=A.filter(a=>B.some(b=>feq(a,b))).length,pri=feq(A[0],B[0]);
-  if(com===A.length&&com===B.length)return 'IGUAL (grafia)';
-  if(pri&&com>=2)return 'PROVÁVEL';
-  if(!pri&&com>=2&&com>=Math.min(A.length,B.length)-1)return 'PROVÁVEL';
+  const ab=A.filter(a=>B.some(b=>feq(a,b))).length,ba=B.filter(b=>A.some(a=>feq(a,b))).length,pri=feq(A[0],B[0]);
+  if(ab===A.length&&ba===B.length)return 'IGUAL (grafia)';
+  if(pri&&(ab===A.length||ba===B.length)&&Math.min(A.length,B.length)>=2)return 'NOME AMPLIADO';
+  if(pri&&ab>=2)return 'NOME ALTERADO';
+  if(!pri&&ab>=2&&ab>=Math.min(A.length,B.length)-1)return 'NOME ALTERADO';
   if(pri)return 'SÓ 1º NOME';return 'DIFERENTE'}
 const partes=s=>String(s||'').split(/\s*[,|;]\s*/).map(x=>x.trim()).filter(Boolean);
 function cmpNomes(x,y){let best=null;for(const a of partes(x))for(const b of partes(y)){const r=cmpPar(a,b);if(r&&(best===null||RANK[r]>RANK[best]))best=r}return best}
+/* compara com o comprador principal e com o 2º comprador do movfin; devolve o melhor e se veio do 2º */
+function cmpPessoa(x,princ,seg){if(seg&&bom(cmpNomes(seg,princ)))seg=null;const a=cmpNomes(x,princ),b=seg?cmpNomes(x,seg):null;
+  if(b&&(a===null||RANK[b]>RANK[a])&&RANK[b]>=4)return {r:b,seg:true};return {r:a,seg:false}}
+const bom=r=>r&&RANK[r]>=4;   // igual, grafia ou nome ampliado
 const ns=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim();
 const generico=s=>/CLIENTE PADR/i.test(nm(s));
 
@@ -267,17 +276,31 @@ function deriva(r){
   const cA=u.a_cliente&&/VENDIDA|EM PROCESSO/.test(u.a_grupo||'')?u.a_cliente:null;
   const cE=u.e_travada?u.e_cliente:null;
   const cM=u.m_cliente&&u.m_situacao&&u.m_situacao!=='DISTRATO'?u.m_cliente:null;
-  const p={};
-  if(cA&&cE)p.ae=generico(cA)?'GENÉRICO':cmpNomes(cA,cE);
-  if(cE&&cM){if(u.e_cpf&&u.m_cpf){if(u.e_cpf===u.m_cpf)p.em='MESMO CPF';else{const r=cmpNomes(cE,cM);p.em=/^IGUAL/.test(r||'')?'CPF DIFERENTE · mesmo nome':'CPF DIFERENTE'}}else p.em=cmpNomes(cE,cM)}
-  if(cA&&cM){let r=generico(cA)?'GENÉRICO':cmpNomes(cA,cM);if(r!=='IGUAL'&&u.m_segundo&&cmpNomes(cA,u.m_segundo)==='IGUAL')r='IGUAL (2º comprador)';p.am=r}
+  const p={},mot=[];
+  // Anapro × 118 (o 118 só traz o 1º comprador; o Anapro pode trazer o 2º)
+  if(cA&&cE){if(generico(cA))p.ae='GENÉRICO';else{const r=cmpNomes(cA,cE);
+    if(!bom(r)&&u.m_segundo&&!bom(cmpNomes(u.m_segundo,u.m_cliente))&&bom(cmpNomes(cA,u.m_segundo))&&bom(cmpNomes(cE,u.m_cliente)))p.ae='OUTRO COMPRADOR (Anapro = 2º comprador do movfin)';else p.ae=r}}
+  // 118 × movfin: CPF decide
+  const cpf=c=>{const d=String(c||'').replace(/\D/g,'');return d.length===10||d.length===9?d.padStart(11,'0'):d.length===11?d:null};
+  const ce=cpf(u.e_cpf),cm=cpf(u.m_cpf);
+  if(cE&&cM){if(ce&&cm){const r=cmpNomes(cE,cM);
+      if(ce===cm)p.em=/^IGUAL/.test(r||'')?'MESMO CPF':'MESMO CPF · nome mudou ('+(r||'?').toLowerCase()+')';
+      else if(/^IGUAL/.test(r||''))p.em='CPF DIFERENTE · mesmo nome';
+      else if(u.m_segundo&&bom(cmpNomes(cE,u.m_segundo)))p.em='CPF DIFERENTE · 118 = 2º comprador do movfin';
+      else p.em='CPF DIFERENTE'}
+    else{const x=cmpPessoa(cE,cM,u.m_segundo);p.em=x.seg?x.r+' · 2º comprador':x.r}}
+  // Anapro × movfin (nome do Anapro contra o 1º e o 2º comprador)
+  if(cA&&cM){if(generico(cA))p.am='GENÉRICO';else{const x=cmpPessoa(cA,cM,u.m_segundo);p.am=x.seg?x.r+' · 2º comprador':x.r}}
   u.cmp=p;const v=Object.values(p).filter(x=>x&&x!=='GENÉRICO');
+  const tem=re=>v.some(x=>re.test(x));
   const n=[cA&&!generico(cA),cE,cM].filter(Boolean).length;
   if(n===0)u.cli=generico(cA||'')?'GENÉRICO no Anapro':'SEM CLIENTE ATUAL';
   else if(n===1)u.cli='UM SISTEMA SÓ';
-  else if(v.some(x=>x==='DIFERENTE'||x==='CPF DIFERENTE'))u.cli='DIFERENTE';
-  else if(v.some(x=>x==='CPF DIFERENTE · mesmo nome'))u.cli='MESMO NOME, CPF DIFERENTE';
-  else if(v.some(x=>x==='PROVÁVEL'||x==='SÓ 1º NOME'))u.cli='PROVÁVEL MESMO (nome mudou?)';
+  else if(tem(/^DIFERENTE|^CPF DIFERENTE$/))u.cli='DIFERENTE';
+  else if(tem(/CPF DIFERENTE · mesmo nome/))u.cli='MESMO NOME, CPF DIFERENTE';
+  else if(tem(/^SÓ 1º NOME/))u.cli='PROVÁVEL MESMO (só o 1º nome bate)';
+  else if(tem(/NOME AMPLIADO|NOME ALTERADO|nome mudou/))u.cli=tem(/^MESMO CPF/)?'MESMO CLIENTE · nome mudou (CPF confirma)':'PROVÁVEL MESMO · nome mudou (casamento?)';
+  else if(tem(/2º comprador|OUTRO COMPRADOR/))u.cli='MESMO CONTRATO · 2º comprador';
   else if(v.length)u.cli='MESMO CLIENTE';else u.cli='GENÉRICO no Anapro';
   u.cliNome=cE||cM||cA||u.e_cliente||u.m_cliente||u.a_cliente||'';
   // alertas
@@ -318,7 +341,7 @@ const FAC=[
  ['ag','Status Anapro',u=>u.ag,true],
  ['as','Status Anapro (original)',u=>u.a_status||'— sem Anapro',false],
  ['es','Situação 118',u=>u.es,true],
- ['ef','Finalidade 118',u=>u.e_finalidade||'—',false],
+ ['ef','Finalidade 118',u=>u.e_finalidade||'—',true],
  ['ee','Status escritura 118',u=>u.e_status_escritura||'—',false],
  ['ms','Situação movfin',u=>u.ms,true],
  ['mf','Fase movfin',u=>u.m_fase||'—',false],
@@ -339,6 +362,7 @@ function facetas(){const h=[];
     const s=SEL[k]||new Set();let L=[...todos].sort(ord||((a,b)=>k==='crit'?ORD[a]-ORD[b]:(cont.get(b)||0)-(cont.get(a)||0)||String(a).localeCompare(b)));
     const aberto=FECH[k]===undefined?abre:!FECH[k];
     h.push(`<div class="fac ${aberto?'':'fech'}" data-k="${k}"><h4 onclick="togFac('${k}')"><span>${t}${s.size?` · ${s.size}`:''}</span>${s.size?`<a onclick="event.stopPropagation();limpaFac('${k}')">limpar</a>`:''}</h4>
+      <div class="fbt"><a onclick="todosFac('${k}')">selecionar todos</a><a onclick="invFac('${k}')">inverter</a><a onclick="limpaFac('${k}')">nenhum</a></div>
       ${L.length>12?`<input class="fsr" placeholder="filtrar opções" oninput="fFac(this)">`:''}
       <div class="ops">${L.map(v=>`<label class="op ${cont.get(v)?'':'z'}"><input type="checkbox" ${s.has(v)?'checked':''} data-k="${k}" data-v="${esc(v)}" onchange="marca(this)"><span class="l" title="${esc(v)}">${esc(v)}</span><span class="n">${fmt(cont.get(v)||0)}</span></label>`).join('')}</div></div>`)}
   $('#facs').innerHTML=h.join('')}
@@ -347,10 +371,16 @@ function togFac(k){const e=document.querySelector(`.fac[data-k="${k}"]`);e.class
 function fFac(i){const t=nm(i.value);i.parentElement.querySelectorAll('.op').forEach(o=>o.style.display=nm(o.textContent).includes(t)?'':'none')}
 function marca(i){const k=i.dataset.k,v=i.dataset.v;SEL[k]=SEL[k]||new Set();i.checked?SEL[k].add(v):SEL[k].delete(v);tudo()}
 function limpaFac(k){delete SEL[k];tudo()}
+function valoresFac(k){const f=FAC.find(x=>x[0]===k)[2];const t=new Set();for(const u of U){const v=f(u);for(const x of(Array.isArray(v)?v:[v]))t.add(x)}return [...t]}
+function visiveis(k){const e=document.querySelector(`.fac[data-k="${k}"]`);return e?[...e.querySelectorAll('.op')].filter(o=>o.style.display!=='none').map(o=>o.querySelector('input').dataset.v):null}
+function todosFac(k){const vis=visiveis(k),all=valoresFac(k);SEL[k]=new Set(vis&&vis.length<all.length?vis.concat([...(SEL[k]||[])]):all);tudo()}
+function invFac(k){const s=SEL[k]||new Set();SEL[k]=new Set(valoresFac(k).filter(v=>!s.has(v)));if(!SEL[k].size)delete SEL[k];tudo()}
 function limpa(){for(const k in SEL)delete SEL[k];Q='';$('#q').value='';tudo()}
 function setFiltro(k,v){for(const x in SEL)delete SEL[x];SEL[k]=new Set([v]);tudo()}
 function tudo(){filtra();facetas();chips();kpis()}
-function chips(){const h=[];for(const [k,t] of FAC){const s=SEL[k];if(s)for(const v of s)h.push(`<span class="chip" title="remover" onclick="SEL['${k}'].delete(this.dataset.v);tudo()" data-v="${esc(v)}">${esc(t)}: ${esc(v)} ×</span>`)}
+function chips(){const h=[];for(const [k,t] of FAC){const s=SEL[k];if(!s||!s.size)continue;const all=valoresFac(k);
+    if(s.size>8&&s.size>all.length/2){const fora=all.filter(v=>!s.has(v));h.push(`<span class="chip" title="limpar" onclick="limpaFac('${k}')">${esc(t)}: todos${fora.length?' menos '+esc(fora.slice(0,4).join(', '))+(fora.length>4?' (+'+(fora.length-4)+')':''):''} ×</span>`)}
+    else for(const v of s)h.push(`<span class="chip" title="remover" onclick="SEL['${k}'].delete(this.dataset.v);tudo()" data-v="${esc(v)}">${esc(t)}: ${esc(v)} ×</span>`)}
   if(Q)h.push(`<span class="chip" onclick="Q='';$('#q').value='';tudo()">busca: ${esc($('#q').value)} ×</span>`);
   $('#chips').innerHTML=h.join('')||'<span class="cnt">Sem filtros: todas as unidades.</span>';$('#cnt').textContent=`${fmt(F.length)} de ${fmt(U.length)} unidades`}
 function kpis(){const n=F.length,c=x=>F.filter(x).length;
@@ -365,7 +395,7 @@ function kpis(){const n=F.length,c=x=>F.filter(x).length;
 /* ------------------------------------------------ tabela virtual */
 const TC=[['emp','Empreendimento','1.5fr','e0'],['un','Unid.','.85fr','e0'],
  ['ana','Status','1fr','a'],['cliA','Cliente','1.25fr','a'],
- ['e','Situação','1.1fr','e'],['venda','Venda','.7fr','e'],['cliE','Cliente','1.25fr','e'],
+ ['e','Situação · finalidade','1.3fr','e'],['venda','Venda','.7fr','e'],['cliE','Cliente','1.25fr','e'],
  ['m','Situação','1fr','m'],['cliM','Cliente','1.2fr','m'],
  ['cli','Mesmo cliente?','1fr','c'],['crit','Alerta','1.45fr','c']];
 const GRP=[['',2,''],['Anapro',2,'g-a'],['ERP 118',3,'g-e'],['Movimentação financeira',2,'g-m'],['Conclusão',2,'g-c']];
@@ -382,7 +412,7 @@ const dBR=d=>d?String(d).slice(0,10).split('-').reverse().join('/'):'';
 function linha(u,i){return `<div class="tr${SELU===u?' sel':''}" style="top:${i*RH}px" onclick="abre(${i})">
   <div class="emp" title="${esc(u.emp)}">${esc(u.emp)}</div><div class="un">${esc(u.un)}<span class="sub" title="${esc(u.andar+' · '+u.tip)}">${esc(u.andar.replace(' andar','').replace('Térreo','térreo'))} · ${esc(u.tip)}</span></div>
   <div>${plA(u.a_grupo)}</div><div title="${esc(u.a_cliente)}">${esc(u.a_cliente||'')}</div>
-  <div>${plE(u.e_situacao)}${(u.e_n_vig||0)>1?' <span class="pl d">'+u.e_n_vig+'×</span>':''}</div><div>${u.e_num_venda?esc(u.e_num_venda)+'<span class="sub">'+dBR(u.e_data_venda)+'</span>':''}</div><div title="${esc(u.e_cliente)}">${esc(u.e_cliente||'')}</div>
+  <div title="${esc(u.e_finalidade||'')}">${plE(u.e_situacao)}${(u.e_n_vig||0)>1?' <span class="pl d">'+u.e_n_vig+'×</span>':''}<span class="sub">${esc(u.e_finalidade||'')}</span></div><div>${u.e_num_venda?esc(u.e_num_venda)+'<span class="sub">'+dBR(u.e_data_venda)+'</span>':''}</div><div title="${esc(u.e_cliente)}">${esc(u.e_cliente||'')}</div>
   <div>${plM(u.m_situacao)}<span class="sub" title="${esc(u.m_sintese)}">${esc(u.m_sintese||'')}</span></div><div title="${esc(u.m_cliente)}">${esc(u.m_cliente||'')}</div>
   <div class="cl ${clsCli(u.cli)}" title="${esc(u.cli)}">${esc(u.cli)}</div>
   <div title="${esc(u.alTxt.join(' · '))}"><span class="cr ${u.crit}">${u.crit}</span> <span style="font-size:11px">${esc(u.alTxt[0]||'')}</span></div></div>`}
@@ -407,7 +437,7 @@ async function abre(i){const u=F[i];SELU=u;desenha();
   </div>
   <div class="cmp"><h5>Cliente nos três sistemas · conclusão: <span class="cl ${clsCli(u.cli)}">${esc(u.cli)}</span></h5>
    <table>${Object.entries(u.cmp).map(([k,v])=>`<tr><td style="width:150px">${LBL_CMP[k]}</td><td><b>${esc(v||'sem nome para comparar')}</b></td></tr>`).join('')||'<tr><td>Só um sistema tem cliente atual: não há o que comparar.</td></tr>'}</table>
-   <p class="note">Compara só o cliente atual de cada sistema: Anapro vendida/em aprovação, 118 com venda não cancelada, movfin fora de distrato. CPF decide entre 118 e movfin. "Igual (grafia)" = mesmos nomes com uma letra de diferença (MARTINES × MARTINS); "Provável" = mesmo primeiro nome e ao menos mais um nome em comum (casamento, sobrenome trocado); "Só 1º nome" = só o primeiro nome bate.</p></div>
+   <p class="note">${u.m_segundo?'2º comprador no movfin: <b>'+esc(u.m_segundo)+'</b>. ':''}Compara só o cliente atual de cada sistema: Anapro vendida/em aprovação, 118 com venda não cancelada, movfin fora de distrato. CPF decide entre 118 e movfin. O nome do Anapro e do 118 também é comparado com o 2º comprador do movfin. "Igual (grafia)" = uma letra de diferença (MARTINES × MARTINS); "Nome ampliado" = um nome contém o outro inteiro (ex.: casou e ganhou um SILVA); "Nome alterado" = mesmo 1º nome e mais um nome em comum, com sobrenome trocado; com o mesmo CPF entre 118 e movfin a mudança de nome fica confirmada.</p></div>
   <div class="raw" id="raw"><p class="note">Carregando linhas originais…</p></div>`;
   $('#dr').classList.add('on');
   try{const d=await rpc('tab_detalhe',{p_emp:u.emp,p_un:u.un});if(SELU!==u)return;
@@ -426,7 +456,7 @@ function tabCruz(t,x,lim){const rr=lim?x.rr.slice(0,lim):x.rr;const tot=[...x.R.
    ${rr.map(r=>`<tr><td>${esc(r)}</td>${x.cols.map(c=>{const v=x.get(r,c);return `<td>${v?fmt(v):'0'}</td>`}).join('')}<td><b>${fmt(x.R.get(r))}</b><small>${pc(x.R.get(r),tot)}</small></td></tr>`).join('')}
    ${lim&&x.rr.length>lim?`<tr><td colspan="${x.cols.length+2}" class="note">… e mais ${x.rr.length-lim} linhas (completo no Excel)</td></tr>`:''}
    <tr class="tot"><td>Total</td>${x.cols.map(c=>`<td>${fmt(x.C.get(c))}</td>`).join('')}<td>${fmt(tot)}</td></tr></tbody></table></div>`}
-function descFiltro(){const p=[];for(const [k,t] of FAC){const s=SEL[k];if(s&&s.size)p.push(`${t}: ${[...s].join(', ')}`)}if(Q)p.push('busca: '+$('#q').value);return p.length?p.join(' · '):'Todas as unidades (sem filtro)'}
+function descFiltro(){const p=[];for(const [k,t] of FAC){const s=SEL[k];if(!s||!s.size)continue;const all=valoresFac(k);if(s.size>8&&s.size>all.length/2){const fora=all.filter(v=>!s.has(v));p.push(`${t}: todos menos ${fora.join(', ')||'nenhum'}`)}else p.push(`${t}: ${[...s].join(', ')}`)}if(Q)p.push('busca: '+$('#q').value);return p.length?p.join(' · '):'Todas as unidades (sem filtro)'}
 function htmlRelatorio(imp){const n=F.length,c=f=>F.filter(f).length;
   const oc=(a,b)=>(ORD[a]??9)-(ORD[b]??9);
   const k=[['c',c(u=>u.crit==='CRÍTICO'),'Críticas'],['a',c(u=>u.crit==='ALTO'),'Altas'],['',c(u=>u.crit==='MÉDIO'),'Médias'],['ok',c(u=>u.crit==='CONFORME'),'Conformes'],['a',c(u=>u.cli==='DIFERENTE'),'Cliente diferente']];
