@@ -169,7 +169,7 @@ button,input,select{font:inherit}
 <div class="toast" id="toast"></div>
 <div id="prt"></div>
 <script>
-const VERSAO='1.2.0';
+const VERSAO='1.2.1';
 const SB={url:'https://jspfqktrbimrarimpzgh.supabase.co',key:'sb_publishable_v5q-FJsZbsufq31dqi3zlA_ddzJQ_f-'};
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -315,6 +315,7 @@ function deriva(r){
   if(u.m_situacao&&u.m_situacao!=='DISTRATO'&&u.e_n_reg&&!u.e_travada)ad('ALTO','Repasse ativo no movfin, mas a venda está cancelada no 118');
   if(u.m_situacao==='DISTRATO'&&u.m_via_contrato&&/VENDA VIGENTE|QUITADA/.test(u.e_situacao||''))ad('ALTO','Distrato no movfin, mas a mesma venda segue vigente no 118');
   if(u.e_travada&&/EM PROCESSO/.test(g))ad('MÉDIO','Travada no 118 e em aprovação/negociação no Anapro');
+  if(!u.e_travada&&(u.e_n_vig||0)>0)ad('MÉDIO','Venda mais recente cancelada no 118, mas há venda anterior ainda não cancelada');
   if(u.cli==='DIFERENTE')ad('MÉDIO','Cliente diferente entre os sistemas');
   if(u.e_travada&&u.e_situacao==='VENDA VIGENTE'&&u.e_tipo_venda==='CEF'&&!u.m_n&&u.e_status_escritura!=='PRE-VENDA')ad('MÉDIO','Venda CEF vigente no 118 sem registro no movfin');
   if(u.cli==='MESMO NOME, CPF DIFERENTE')ad('MÉDIO','Mesmo nome, mas CPF diferente entre 118 e movfin');
@@ -405,7 +406,7 @@ function cab(){document.documentElement.style.setProperty('--gc',TC.map(t=>t[2])
    TC.map(([k,t])=>`<div class="h ${ORDEM.c===k?'s'+(ORDEM.asc?' asc':''):''}" onclick="porCol('${k}')">${t}</div>`).join('')}
 function porCol(k){ORDEM.asc=ORDEM.c===k?!ORDEM.asc:true;ORDEM.c=k;cab();ordena();desenha()}
 const plA=g=>{if(!g)return '<span class="pl">—</span>';const c=/DISPONÍVEL/.test(g)?'d':/VENDIDA/.test(g)?'v':/PROCESSO/.test(g)?'p':'b';return `<span class="pl ${c}">${esc(g)}</span>`};
-const plE=s=>{if(!s)return '<span class="pl">—</span>';const c=/VIGENTE|QUITADA/.test(s)?'v':/DISTRATO|RETOMADA/.test(s)?'p':'b';return `<span class="pl ${c}">${esc(s.replace(' (só vendas canceladas)',''))}</span>`};
+const plE=s=>{if(!s)return '<span class="pl">—</span>';const c=/VIGENTE|QUITADA/.test(s)?'v':/DISTRATO|RETOMADA/.test(s)?'p':'b';return `<span class="pl ${c}">${esc(s.replace(/\s*\(.*\)$/,''))}</span>`};
 const plM=s=>{if(!s)return '<span class="pl">—</span>';const c=/FINALIZADO|DIRETA/.test(s)?'v':/DISTRATO/.test(s)?'d':'x';return `<span class="pl ${c}">${esc(s)}</span>`};
 const clsCli=c=>/^MESMO NOME/.test(c)?'PROVÁVEL':/^MESMO/.test(c)?'MESMO':/^PROVÁVEL/.test(c)?'PROVÁVEL':/^DIFERENTE/.test(c)?'DIFERENTE':/^GENÉRICO/.test(c)?'GENÉRICO':'UM';
 const dBR=d=>d?String(d).slice(0,10).split('-').reverse().join('/'):'';
