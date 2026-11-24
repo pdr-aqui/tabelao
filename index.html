@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tabelão Vinculado · Anapro × 118 × Movfin</title>
+<link rel="icon" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" defer></script>
+<style>
+:root{--vinho:#5C0A10;--vermelho:#C41420;--rosa:#F8E8E9;--rl:#EFD2D4;--tinta:#1A1416;--graf:#6B6065;--neutro:#EDE9EA;--ok:#1F7A5C;--alto:#B4521E;--medio:#B88A00;--baixo:#6B6065;
+  --bg:#F6F4F4;--card:#fff;--line:#E6E1E2;--azul:#1F4E8C}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;font-size:13px;color:var(--tinta);background:var(--bg);height:100vh;overflow:hidden}
+button,input,select{font:inherit}
+.hd{display:flex;align-items:center;gap:14px;height:54px;padding:0 18px;background:#fff;border-bottom:1px solid var(--line)}
+.hd img{height:26px}.hd .t{font-family:'Space Grotesk';font-weight:700;font-size:17px;color:var(--vinho);letter-spacing:-.02em}
+.hd .t small{font-family:Inter;font-weight:500;font-size:11.5px;color:var(--graf);margin-left:8px;letter-spacing:0}
+.hd .sp{flex:1}.hd .who{font-size:12px;color:var(--graf);text-align:right;line-height:1.25}
+.btn{border:1px solid var(--vinho);background:var(--vinho);color:#fff;border-radius:7px;padding:7px 13px;cursor:pointer;font-weight:600;font-size:12.5px;white-space:nowrap}
+.btn:hover{filter:brightness(1.12)}.btn:disabled{opacity:.5;cursor:default}
+.btn.g{background:#fff;color:var(--vinho)}.btn.r{background:var(--vermelho);border-color:var(--vermelho)}.btn.sm{padding:4px 9px;font-size:12px}
+.app{display:grid;grid-template-columns:270px 1fr;height:calc(100vh - 54px)}
+.side{background:#fff;border-right:1px solid var(--line);overflow-y:auto;padding:12px 12px 30px}
+.main{display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.srch{width:100%;border:1px solid var(--line);border-radius:7px;padding:8px 10px;background:#FBFAFA}
+.srch:focus{outline:2px solid var(--rl);border-color:var(--vinho)}
+.fac{margin-top:12px;border-top:1px solid var(--line);padding-top:9px}
+.fac h4{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--graf);font-weight:600;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none}
+.fac h4 a{font-size:10.5px;color:var(--vermelho);text-transform:none;letter-spacing:0;cursor:pointer}
+.fac .ops{margin-top:6px;max-height:210px;overflow-y:auto}
+.fac.fech .ops,.fac.fech .fsr{display:none}
+.op{display:flex;align-items:center;gap:7px;padding:3px 4px;border-radius:5px;cursor:pointer;font-size:12.3px;line-height:1.25}
+.op:hover{background:var(--rosa)}.op input{accent-color:var(--vinho)}
+.op span.l{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.op span.n{color:var(--graf);font-variant-numeric:tabular-nums;font-size:11.5px}
+.op.z{opacity:.45}
+.fsr{width:100%;margin-top:6px;border:1px solid var(--line);border-radius:5px;padding:4px 7px;font-size:12px}
+.kp{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;padding:12px 16px 4px}
+.k{background:#fff;border:1px solid var(--line);border-top:3px solid var(--vinho);border-radius:8px;padding:9px 11px;cursor:pointer}
+.k.c{border-top-color:var(--vermelho)}.k.a{border-top-color:var(--alto)}.k.ok{border-top-color:var(--ok)}
+.k b{display:block;font-family:'Space Grotesk';font-size:21px;color:var(--vinho);font-variant-numeric:tabular-nums;line-height:1.1}
+.k.c b{color:var(--vermelho)}.k b small{font-family:Inter;font-size:11px;color:var(--graf);font-weight:500;margin-left:5px}
+.k span{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--graf);font-weight:600}
+.bar{display:flex;align-items:center;gap:8px;padding:8px 16px;flex-wrap:wrap}
+.chips{display:flex;gap:5px;flex-wrap:wrap;flex:1;min-width:0}
+.chip{background:var(--rosa);color:var(--vinho);border-radius:12px;padding:3px 9px;font-size:11.5px;font-weight:600;cursor:pointer;white-space:nowrap;max-width:280px;overflow:hidden;text-overflow:ellipsis}
+.chip:hover{background:var(--rl)}.cnt{font-size:12px;color:var(--graf);white-space:nowrap}
+.tw{flex:1;margin:0 16px 12px;background:#fff;border:1px solid var(--line);border-radius:9px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.th,.tr{display:grid;grid-template-columns:var(--gc);align-items:center}
+.th{background:#FBFAFA;border-bottom:1px solid var(--line);font-size:10.3px;letter-spacing:.06em;text-transform:uppercase;color:var(--graf);font-weight:600}
+.th .grp{grid-column:span var(--s);padding:5px 8px 2px;border-bottom:2px solid;font-size:10px;letter-spacing:.1em}
+.th .h{padding:5px 8px 6px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.th .h:hover{color:var(--vinho)}
+.th .h.s::after{content:" ▾"}.th .h.s.asc::after{content:" ▴"}
+.g-a{border-color:#C98088!important;color:var(--vinho)}.g-e{border-color:var(--vinho)!important;color:var(--vinho)}.g-m{border-color:var(--azul)!important;color:var(--azul)}.g-c{border-color:var(--graf)!important}
+.tb{flex:1;overflow-y:auto;overflow-x:hidden;position:relative}
+.tr{height:36px;border-bottom:1px solid #F1EDEE;cursor:pointer;position:absolute;left:0;right:0}
+.tr:hover{background:#FCF6F6}.tr.sel{background:var(--rosa)}
+.tr>div{padding:0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.2px}
+.tr .emp{font-weight:600}.tr .un{font-family:'Space Grotesk';font-weight:600;font-variant-numeric:tabular-nums}
+.sub{display:block;font-size:10.8px;color:var(--graf);overflow:hidden;text-overflow:ellipsis;line-height:1.2}
+.tr>div{line-height:1.25}
+.pl{display:inline-block;padding:1px 7px;border-radius:9px;font-size:10.8px;font-weight:600;white-space:nowrap;background:var(--neutro);color:var(--graf)}
+.pl.v{background:#E8F1EC;color:var(--ok)}.pl.d{background:#FCE7E8;color:var(--vermelho)}.pl.p{background:#FFF4D6;color:#8A6500}.pl.b{background:#EEE;color:#555}.pl.x{background:#E7EEF7;color:var(--azul)}
+.cr{display:inline-block;padding:1px 7px;border-radius:9px;font-size:10.5px;font-weight:700;letter-spacing:.03em}
+.cr.CRÍTICO{background:var(--vermelho);color:#fff}.cr.ALTO{background:var(--alto);color:#fff}.cr.MÉDIO{background:#F3D27A;color:#5C4300}.cr.CONFORME{background:#E8F1EC;color:var(--ok)}.cr.INCONCLUSIVO{background:var(--neutro);color:var(--graf)}
+.cl{font-weight:700;font-size:11px}.cl.MESMO{color:var(--ok)}.cl.PROVÁVEL{color:#8A6500}.cl.DIFERENTE{color:var(--vermelho)}.cl.UM,.cl.SEM{color:var(--graf);font-weight:500}.cl.GENÉRICO{color:var(--graf)}
+.vz{padding:40px;text-align:center;color:var(--graf)}
+/* drawer */
+.dr{position:fixed;top:0;right:0;width:min(760px,92vw);height:100vh;background:#fff;box-shadow:-8px 0 30px rgba(26,20,22,.18);transform:translateX(105%);transition:transform .18s;z-index:20;display:flex;flex-direction:column}
+.dr.on{transform:none}.drh{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;gap:10px}
+.drh h2{font-family:'Space Grotesk';color:var(--vinho);font-size:19px;letter-spacing:-.02em}.drh p{color:var(--graf);font-size:12px;margin-top:2px}
+.drb{flex:1;overflow-y:auto;padding:14px 18px 40px}
+.x{margin-left:auto;border:0;background:none;font-size:22px;line-height:1;cursor:pointer;color:var(--graf)}
+.al{border-radius:8px;padding:8px 11px;margin-bottom:6px;font-size:12.5px;display:flex;gap:8px;align-items:flex-start}
+.al.CRÍTICO{background:#FCE7E8}.al.ALTO{background:#FBEDE3}.al.MÉDIO{background:#FFF6DB}
+.c3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+.sc{border:1px solid var(--line);border-radius:9px;padding:10px 11px;border-top:3px solid}
+.sc h5{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+.sc dl{display:grid;grid-template-columns:auto 1fr;gap:3px 8px;font-size:12px}.sc dt{color:var(--graf)}.sc dd{font-weight:500;overflow-wrap:anywhere}
+.cmp{border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin:10px 0}
+.cmp h5{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--graf);margin-bottom:6px}
+.cmp table{width:100%;border-collapse:collapse;font-size:12.3px}.cmp td{padding:4px 4px;border-bottom:1px solid #F1EDEE}
+.raw{margin-top:14px}.raw summary{cursor:pointer;font-weight:600;color:var(--vinho);padding:6px 0}
+.kv{display:grid;grid-template-columns:200px 1fr;gap:1px 10px;font-size:11.8px;padding:6px 8px;border:1px solid var(--line);border-radius:7px;margin:6px 0}
+.kv div:nth-child(odd){color:var(--graf)}.kv div{overflow-wrap:anywhere;padding:1px 0}
+.kv h6{grid-column:1/-1;font-size:11px;color:var(--vinho);margin-bottom:3px}
+/* modal */
+.mb{position:fixed;inset:0;background:rgba(26,20,22,.42);z-index:30;display:none;align-items:center;justify-content:center}
+.mb.on{display:flex}.md{background:#fff;border-radius:12px;width:min(1180px,95vw);max-height:92vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+.mdh{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.mdh h3{font-family:'Space Grotesk';color:var(--vinho);font-size:18px}.mdb{overflow-y:auto;padding:16px 18px 24px}
+.rg{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.rt{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+.rt th{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--graf);font-weight:600;text-align:right;padding:5px 6px;border-bottom:2px solid var(--vinho)}
+.rt th:first-child,.rt td:first-child{text-align:left}
+.rt td{padding:4px 6px;border-bottom:1px solid #F1EDEE;text-align:right}.rt td small{color:var(--graf);margin-left:4px;font-size:10px}
+.rt tr.tot td{font-weight:700;background:var(--rosa)}
+.rs h4{font-family:'Space Grotesk';color:var(--vinho);font-size:14px;margin:4px 0 6px;border-left:3px solid var(--vinho);padding-left:7px}
+.rk{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+.note{font-size:11.5px;color:var(--graf);margin-top:6px;line-height:1.45}
+/* login */
+.gate{position:fixed;inset:0;background:linear-gradient(135deg,#5C0A10,#2B0508);display:none;align-items:center;justify-content:center;z-index:50}
+.gate.on{display:flex}.gbox{background:#fff;border-radius:14px;padding:26px 28px;width:360px}
+.gbox img{height:30px}.gbox h1{font-family:'Space Grotesk';color:var(--vinho);font-size:22px;margin:14px 0 4px}
+.gbox p{color:var(--graf);font-size:12.5px;margin-bottom:14px}.gbox input{width:100%;margin-bottom:9px;border:1px solid var(--line);border-radius:7px;padding:10px}
+.gbox .btn{width:100%;padding:10px}.gm{color:var(--vermelho);font-size:12px;min-height:16px;margin-top:8px}
+.ld{position:fixed;inset:0;background:rgba(255,255,255,.82);z-index:40;display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px}
+.ld.on{display:flex}.ld b{font-family:'Space Grotesk';color:var(--vinho);font-size:16px}.ld .pb{width:320px;height:6px;background:var(--neutro);border-radius:3px;overflow:hidden}
+.ld .pb i{display:block;height:100%;background:var(--vinho);width:0;transition:width .2s}.ld span{color:var(--graf);font-size:12px}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--tinta);color:#fff;padding:10px 16px;border-radius:8px;z-index:60;font-size:12.5px;display:none;max-width:80vw}
+.toast.on{display:block}.toast.err{background:var(--vermelho)}
+/* admin */
+.up{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.upc{border:1px solid var(--line);border-radius:10px;padding:12px}
+.upc h5{font-family:'Space Grotesk';color:var(--vinho);font-size:15px}.upc p{font-size:11.5px;color:var(--graf);margin:3px 0 8px;min-height:30px}
+.upc input[type=file]{width:100%;font-size:11.5px;margin-bottom:8px}
+.frm{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.frm input,.frm select{border:1px solid var(--line);border-radius:6px;padding:6px 8px;flex:1;min-width:160px}
+/* impressão do relatório */
+#prt{display:none}
+@media print{
+  @page{size:A4 landscape;margin:9mm}
+  body{height:auto;overflow:visible;background:#fff}
+  body>*:not(#prt){display:none!important}
+  #prt{display:block}
+  #prt .rt{font-size:9pt}#prt .rt td,#prt .rt th{padding:2.5px 5px}
+  #prt .pg{page-break-after:always}#prt .pg:last-child{page-break-after:auto}
+  #prt .ph{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid var(--vinho);padding-bottom:5px;margin-bottom:9px}
+  #prt .ph img{height:22px}#prt .ph h2{font-family:'Space Grotesk';color:var(--vinho);font-size:16pt}
+  #prt .ph div{text-align:right;font-size:8pt;color:var(--graf)}
+  #prt .rk{grid-template-columns:repeat(5,1fr)}#prt .k{padding:6px 8px}#prt .k b{font-size:15pt}
+  #prt .rg{gap:10px}#prt .note{font-size:8pt}
+  #prt .rs{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<header class="hd">
+  <img src="logo.png" alt="Metrocasa">
+  <div class="t">Tabelão Vinculado<small>Anapro × ERP 118 × Movimentação Financeira</small></div>
+  <div class="sp"></div>
+  <button class="btn g" onclick="abreRelatorio()">Relatório da seleção</button>
+  <button class="btn g" onclick="exporta('xlsx')">Exportar Excel</button>
+  <button class="btn g" id="badm" onclick="abreAdmin()" style="display:none">Bases e acessos</button>
+  <div class="who" id="who"></div>
+  <button class="btn g sm" onclick="sair()">Sair</button>
+</header>
+<div class="app">
+  <aside class="side">
+    <input class="srch" id="q" placeholder="Buscar unidade, cliente, CPF, contrato…  ( / )" autocomplete="off">
+    <div id="facs"></div>
+  </aside>
+  <section class="main">
+    <div class="kp" id="kp"></div>
+    <div class="bar"><div class="chips" id="chips"></div><span class="cnt" id="cnt"></span><button class="btn g sm" onclick="limpa()">Limpar filtros</button></div>
+    <div class="tw"><div class="th" id="th"></div><div class="tb" id="tb"><div id="sp"></div></div></div>
+  </section>
+</div>
+<div class="dr" id="dr"><div class="drh"><div><h2 id="drt"></h2><p id="drs"></p></div><button class="x" onclick="fechaDr()">×</button></div><div class="drb" id="drb"></div></div>
+<div class="mb" id="mb" onclick="if(event.target===this)fechaMd()"><div class="md"><div class="mdh"><h3 id="mdt"></h3><div style="flex:1"></div><div id="mda"></div><button class="x" onclick="fechaMd()">×</button></div><div class="mdb" id="mdb"></div></div></div>
+<div class="gate" id="gate"><div class="gbox"><img src="logo.png" alt=""><h1>Tabelão Vinculado</h1><p>Entre com o mesmo login do Acompanhamento Comercial e do painel de Recompras.</p>
+  <input id="ge" type="email" placeholder="e-mail" autocomplete="username"><input id="gs" type="password" placeholder="senha" autocomplete="current-password">
+  <button class="btn" id="gg" onclick="entra()">Entrar</button><div class="gm" id="gm"></div></div></div>
+<div class="ld" id="ld"><b id="ldt">Carregando…</b><div class="pb"><i id="ldp"></i></div><span id="lds"></span></div>
+<div class="toast" id="toast"></div>
+<div id="prt"></div>
+<script>
+const VERSAO='1.0.0';
+const SB={url:'https://jspfqktrbimrarimpzgh.supabase.co',key:'sb_publishable_v5q-FJsZbsufq31dqi3zlA_ddzJQ_f-'};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=n=>Number(n||0).toLocaleString('pt-BR');
+const pc=(a,b,d=0)=>b?(100*a/b).toFixed(d).replace('.',',')+'%':'—';
+function toast(m,err){const t=$('#toast');t.innerHTML=m;t.className='toast on'+(err?' err':'');clearTimeout(t._h);t._h=setTimeout(()=>t.className='toast',err?7000:3500)}
+function load(on,t,s,p){$('#ld').classList.toggle('on',!!on);if(t)$('#ldt').textContent=t;$('#lds').textContent=s||'';$('#ldp').style.width=(p==null?0:p)+'%'}
+
+/* ------------------------------------------------ Supabase */
+let SES=null,INFO=null;
+const sbH=t=>({'Content-Type':'application/json',apikey:SB.key,...(t?{Authorization:'Bearer '+t}:{})});
+async function sbCall(url,opt){const r=await fetch(url,opt);const tx=await r.text();let j=null;try{j=tx?JSON.parse(tx):null}catch(e){}
+  if(!r.ok){const e=new Error((j&&(j.message||j.error_description||j.msg||j.error))||('HTTP '+r.status));e.status=r.status;throw e}return j}
+const sesSalva=()=>{try{SES?localStorage.setItem('tab_sb',JSON.stringify({email:SES.email,refresh:SES.refresh})):localStorage.removeItem('tab_sb')}catch(e){}};
+async function sbRenova(){const j=await sbCall(SB.url+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:sbH(),body:JSON.stringify({refresh_token:SES.refresh})});SES.access=j.access_token;SES.refresh=j.refresh_token;sesSalva()}
+async function rpc(fn,args={}){if(!SES.access)await sbRenova();
+  const f=()=>sbCall(SB.url+'/rest/v1/rpc/'+fn,{method:'POST',headers:sbH(SES.access),body:JSON.stringify(args)});
+  try{return await f()}catch(e){if(e.status===401){await sbRenova();return f()}throw e}}
+const msgErro=e=>/sem_permissao/.test(e.message)?'Seu login ainda não tem acesso ao Tabelão. Peça ao administrador.':/somente_admin/.test(e.message)?'Só o administrador pode fazer isso.':/sem_login_supabase/.test(e.message)?'Esse e-mail não tem login no Supabase (Authentication → Users → Add user).':/nao_pode_rebaixar/.test(e.message)?'Você não pode tirar o seu próprio acesso de admin.':/Invalid login|invalid_grant/i.test(e.message)?'E-mail ou senha incorretos.':/Failed to fetch|NetworkError/i.test(e.message)?'Sem conexão com o banco.':/statement timeout|canceling statement/i.test(e.message)?'O banco demorou demais para responder. Tente de novo.':e.message;
+function gate(m){$('#gate').classList.add('on');try{$('#ge').value=localStorage.getItem('tab_email')||''}catch(e){}$('#gm').textContent=m||'';setTimeout(()=>($('#ge').value?$('#gs'):$('#ge')).focus(),60)}
+async function entra(){const em=$('#ge').value.trim(),se=$('#gs').value;if(!em||!se){$('#gm').textContent='Informe e-mail e senha.';return}
+  $('#gg').disabled=true;$('#gm').textContent='';
+  try{const j=await sbCall(SB.url+'/auth/v1/token?grant_type=password',{method:'POST',headers:sbH(),body:JSON.stringify({email:em,password:se})});
+    SES={email:em,access:j.access_token,refresh:j.refresh_token};sesSalva();try{localStorage.setItem('tab_email',em)}catch(e){}
+    $('#gate').classList.remove('on');$('#gs').value='';await inicia()}
+  catch(e){SES=null;sesSalva();$('#gm').textContent=msgErro(e)}finally{$('#gg').disabled=false}}
+function sair(){const s=SES;SES=null;sesSalva();if(s&&s.access)fetch(SB.url+'/auth/v1/logout',{method:'POST',headers:sbH(s.access)}).catch(()=>{});location.reload()}
+
+/* ------------------------------------------------ cache local (IndexedDB) */
+const idb=()=>new Promise((ok,er)=>{const r=indexedDB.open('tabelao',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>ok(r.result);r.onerror=()=>er(r.error)});
+async function idbGet(k){try{const d=await idb();return await new Promise(ok=>{const q=d.transaction('kv').objectStore('kv').get(k);q.onsuccess=()=>ok(q.result);q.onerror=()=>ok(null)})}catch(e){return null}}
+async function idbSet(k,v){try{const d=await idb();await new Promise(ok=>{const t=d.transaction('kv','readwrite');t.objectStore('kv').put(v,k);t.oncomplete=ok;t.onerror=ok})}catch(e){}}
+
+/* ------------------------------------------------ dados */
+const COLS=['emp','un','bloco','presenca','obs_vinculo','a_n','a_status','a_grupo','a_estagio','a_classif','a_cliente','a_data_venda','a_preco_venda','a_tipologia','a_equipe','a_corretor',
+ 'e_n_reg','e_n_vig','e_travada','e_situacao','e_status_venda','e_finalidade','e_status_escritura','e_num_venda','e_contrato','e_cliente','e_cpf','e_data_venda','e_valor_venda','e_tipo_venda','e_carteira','e_vendas_vigentes',
+ 'm_n','m_situacao','m_fase','m_sintese','m_status','m_data_status','m_cliente','m_cpf','m_segundo','m_banco','m_contrato_crm','m_contrato_fin','m_data_minuta','m_data_retirada','m_via_contrato'];
+let U=[],F=[],CORTE=null;
+async function carregaUnidades(){
+  const cache=await idbGet('unidades');
+  if(cache&&cache.versao===INFO.versao&&cache.rows)return cache.rows;
+  const tot=INFO.total||0,P=5000,pags=Math.max(1,Math.ceil(tot/P));let rows=[],feitas=0;
+  load(true,'Baixando o tabelão do banco…',`${fmt(tot)} unidades`,0);
+  const tarefas=[...Array(pags).keys()];const res=new Array(pags);
+  async function w(){while(tarefas.length){const i=tarefas.shift();res[i]=(await rpc('tab_unidades',{p_offset:i*P,p_limit:P})).rows;feitas++;load(true,'Baixando o tabelão do banco…',`${fmt(Math.min(feitas*P,tot))} de ${fmt(tot)} unidades`,100*feitas/pags)}}
+  await Promise.all([w(),w(),w()]);rows=res.flat();
+  await idbSet('unidades',{versao:INFO.versao,rows});return rows}
+
+/* ------------------------------------------------ comparação de clientes */
+const STOP=new Set(['DE','DA','DO','DAS','DOS','E']);
+const nm=s=>String(s||'').replace(/�/g,'?').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z? ]/g,' ').replace(/\s+/g,' ').trim();
+const toks=s=>nm(s).split(' ').filter(t=>t.length>=2&&!STOP.has(t));
+const teq=(a,b)=>a===b||(a.length===b.length&&[...a].every((c,i)=>c===b[i]||c==='?'||b[i]==='?'));
+const RANK={IGUAL:4,'IGUAL (grafia)':3,'PROVÁVEL':2,'SÓ 1º NOME':1,'DIFERENTE':0};
+function lev1(a,b){if(a===b)return true;if(Math.min(a.length,b.length)<4||Math.abs(a.length-b.length)>1)return false;
+  let i=0,j=0,d=0;while(i<a.length&&j<b.length){if(a[i]===b[j]||a[i]==='?'||b[j]==='?'){i++;j++;continue}if(++d>1)return false;
+    if(a.length>b.length)i++;else if(b.length>a.length)j++;else{i++;j++}}return d+(a.length-i)+(b.length-j)<=1}
+const feq=(a,b)=>teq(a,b)||lev1(a,b);
+function cmpPar(x,y){const A=toks(x),B=toks(y);if(!A.length||!B.length)return null;
+  const exa=A.filter(a=>B.some(b=>teq(a,b))).length;
+  if(exa===A.length&&exa===B.length)return 'IGUAL';
+  const com=A.filter(a=>B.some(b=>feq(a,b))).length,pri=feq(A[0],B[0]);
+  if(com===A.length&&com===B.length)return 'IGUAL (grafia)';
+  if(pri&&com>=2)return 'PROVÁVEL';
+  if(!pri&&com>=2&&com>=Math.min(A.length,B.length)-1)return 'PROVÁVEL';
+  if(pri)return 'SÓ 1º NOME';return 'DIFERENTE'}
+const partes=s=>String(s||'').split(/\s*[,|;]\s*/).map(x=>x.trim()).filter(Boolean);
+function cmpNomes(x,y){let best=null;for(const a of partes(x))for(const b of partes(y)){const r=cmpPar(a,b);if(r&&(best===null||RANK[r]>RANK[best]))best=r}return best}
+const ns=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim();
+const generico=s=>/CLIENTE PADR/i.test(nm(s));
+
+/* ------------------------------------------------ derivação: cliente e alertas */
+const ORD={'CRÍTICO':0,'ALTO':1,'MÉDIO':2,'CONFORME':3,'INCONCLUSIVO':4};
+function deriva(r){
+  const u={};COLS.forEach((c,i)=>u[c]=r[i]);for(const c of ['a_cliente','e_cliente','m_cliente','m_segundo'])if(u[c]&&/^[-–\s.]*$/.test(u[c]))u[c]=null;
+  u.ch=u.emp+' · '+u.un;
+  u.ag=u.a_grupo||'— sem Anapro';u.es=u.e_situacao||'— sem 118';u.ms=u.m_situacao||'— sem movfin';
+  // clientes "atuais" de cada sistema
+  const cA=u.a_cliente&&/VENDIDA|EM PROCESSO/.test(u.a_grupo||'')?u.a_cliente:null;
+  const cE=u.e_travada?u.e_cliente:null;
+  const cM=u.m_cliente&&u.m_situacao&&u.m_situacao!=='DISTRATO'?u.m_cliente:null;
+  const p={};
+  if(cA&&cE)p.ae=generico(cA)?'GENÉRICO':cmpNomes(cA,cE);
+  if(cE&&cM){if(u.e_cpf&&u.m_cpf){if(u.e_cpf===u.m_cpf)p.em='MESMO CPF';else{const r=cmpNomes(cE,cM);p.em=/^IGUAL/.test(r||'')?'CPF DIFERENTE · mesmo nome':'CPF DIFERENTE'}}else p.em=cmpNomes(cE,cM)}
+  if(cA&&cM){let r=generico(cA)?'GENÉRICO':cmpNomes(cA,cM);if(r!=='IGUAL'&&u.m_segundo&&cmpNomes(cA,u.m_segundo)==='IGUAL')r='IGUAL (2º comprador)';p.am=r}
+  u.cmp=p;const v=Object.values(p).filter(x=>x&&x!=='GENÉRICO');
+  const n=[cA&&!generico(cA),cE,cM].filter(Boolean).length;
+  if(n===0)u.cli=generico(cA||'')?'GENÉRICO no Anapro':'SEM CLIENTE ATUAL';
+  else if(n===1)u.cli='UM SISTEMA SÓ';
+  else if(v.some(x=>x==='DIFERENTE'||x==='CPF DIFERENTE'))u.cli='DIFERENTE';
+  else if(v.some(x=>x==='CPF DIFERENTE · mesmo nome'))u.cli='MESMO NOME, CPF DIFERENTE';
+  else if(v.some(x=>x==='PROVÁVEL'||x==='SÓ 1º NOME'))u.cli='PROVÁVEL MESMO (nome mudou?)';
+  else if(v.length)u.cli='MESMO CLIENTE';else u.cli='GENÉRICO no Anapro';
+  u.cliNome=cE||cM||cA||u.e_cliente||u.m_cliente||u.a_cliente||'';
+  // alertas
+  const al=[],ad=(n,t)=>al.push([n,t]);const g=u.a_grupo||'';
+  const aDt=(()=>{const m=String(u.a_data_venda||'').match(/(\d{2})\/(\d{2})\/(\d{4})/);return m?m[3]+'-'+m[2]+'-'+m[1]:null})();
+  if(u.e_travada&&/DISPONÍVEL/.test(g))ad('CRÍTICO','Travada no 118 e DISPONÍVEL para venda no Anapro');
+  if(u.e_travada&&!u.a_n)ad('CRÍTICO','Ativa e travada no 118, inexistente no Anapro');
+  if((u.e_n_vig||0)>1)ad('CRÍTICO',`${u.e_n_vig} vendas vigentes no 118 para a mesma unidade`);
+  if(u.e_travada&&/BLOQUEADA|PERMUTA/.test(g))ad('ALTO',`Travada no 118, mas "${u.a_status}" no Anapro`);
+  if(/VENDIDA/.test(g)&&!u.e_travada){if(aDt&&CORTE&&aDt>CORTE)ad('MÉDIO','Vendida no Anapro depois do corte do 118 (confirmar com 118 novo)');else ad('ALTO',u.e_n_reg?'Vendida no Anapro, mas o 118 só tem vendas canceladas':'Vendida no Anapro e sem nenhuma venda no 118')}
+  if(u.e_n_reg&&!u.e_travada&&!u.a_n)ad('ALTO','Unidade do 118 (vendas canceladas) inexistente no Anapro');
+  if(u.m_situacao&&u.m_situacao!=='DISTRATO'&&u.e_n_reg&&!u.e_travada)ad('ALTO','Repasse ativo no movfin, mas a venda está cancelada no 118');
+  if(u.m_situacao==='DISTRATO'&&u.m_via_contrato&&/VENDA VIGENTE|QUITADA/.test(u.e_situacao||''))ad('ALTO','Distrato no movfin, mas a mesma venda segue vigente no 118');
+  if(u.e_travada&&/EM PROCESSO/.test(g))ad('MÉDIO','Travada no 118 e em aprovação/negociação no Anapro');
+  if(u.cli==='DIFERENTE')ad('MÉDIO','Cliente diferente entre os sistemas');
+  if(u.e_travada&&u.e_situacao==='VENDA VIGENTE'&&u.e_tipo_venda==='CEF'&&!u.m_n&&u.e_status_escritura!=='PRE-VENDA')ad('MÉDIO','Venda CEF vigente no 118 sem registro no movfin');
+  if(u.cli==='MESMO NOME, CPF DIFERENTE')ad('MÉDIO','Mesmo nome, mas CPF diferente entre 118 e movfin');
+  al.sort((a,b)=>ORD[a[0]]-ORD[b[0]]);u.al=al;u.crit=al.length?al[0][0]:(u.presenca==='Anapro'?'INCONCLUSIVO':'CONFORME');
+  u.alTxt=al.map(a=>a[1]);
+  u.txt=' '+ns([u.emp,u.un,u.un.replace(/-/g,''),u.a_cliente,u.e_cliente,u.m_cliente,u.m_segundo,u.e_num_venda,u.e_contrato,u.m_contrato_crm,u.m_contrato_fin,u.e_cpf,u.m_cpf].join(' '))+' ';
+  return u}
+
+/* ------------------------------------------------ filtros */
+const FAC=[
+ ['crit','Criticidade',u=>u.crit,true],
+ ['alerta','Alerta',u=>u.alTxt.length?u.alTxt:['(sem alerta)'],false],
+ ['emp','Empreendimento',u=>u.emp,false],
+ ['pres','Presença nos sistemas',u=>u.presenca,false],
+ ['ag','Status Anapro',u=>u.ag,true],
+ ['as','Status Anapro (original)',u=>u.a_status||'— sem Anapro',false],
+ ['es','Situação 118',u=>u.es,true],
+ ['ef','Finalidade 118',u=>u.e_finalidade||'—',false],
+ ['ee','Status escritura 118',u=>u.e_status_escritura||'—',false],
+ ['ms','Situação movfin',u=>u.ms,true],
+ ['mf','Fase movfin',u=>u.m_fase||'—',false],
+ ['mt','Síntese movfin',u=>u.m_sintese||'—',false],
+ ['cli','Mesmo cliente?',u=>u.cli,true],
+ ['tv','Tipo de venda 118',u=>u.e_tipo_venda||'—',false],
+ ['car','Carteira 118',u=>u.e_carteira||'—',false],
+];
+const SEL={};let Q='',ORDEM={c:'emp',asc:true};
+function passa(u,ign){for(const [k,,fn] of FAC){if(k===ign)continue;const s=SEL[k];if(!s||!s.size)continue;const v=fn(u);if(Array.isArray(v)?!v.some(x=>s.has(x)):!s.has(v))return false}
+  if(Q){for(const t of Q)if(!u.txt.includes(t))return false}return true}
+function filtra(){F=U.filter(u=>passa(u));ordena();desenha()}
+function ordena(){const c=ORDEM.c,s=ORDEM.asc?1:-1;const key={emp:u=>u.emp+'|'+u.un,un:u=>u.un,ana:u=>u.ag,cliA:u=>u.a_cliente||'',e:u=>u.es,cliE:u=>u.e_cliente||'',m:u=>u.ms,cliM:u=>u.m_cliente||'',cli:u=>u.cli,crit:u=>ORD[u.crit]+'|'+u.emp+u.un,venda:u=>u.e_data_venda||''}[c]||(u=>u.emp);
+  F.sort((a,b)=>{const x=key(a),y=key(b);return x<y?-s:x>y?s:0})}
+function facetas(){const h=[];
+  for(const [k,t,fn,abre] of FAC){const cont=new Map();for(const u of U){if(!passa(u,k))continue;const v=fn(u);for(const x of(Array.isArray(v)?v:[v]))cont.set(x,(cont.get(x)||0)+1)}
+    const todos=new Set();for(const u of U){const v=fn(u);for(const x of(Array.isArray(v)?v:[v]))todos.add(x)}
+    const s=SEL[k]||new Set();let L=[...todos].sort((a,b)=>k==='crit'?ORD[a]-ORD[b]:(cont.get(b)||0)-(cont.get(a)||0)||String(a).localeCompare(b));
+    const aberto=FECH[k]===undefined?abre:!FECH[k];
+    h.push(`<div class="fac ${aberto?'':'fech'}" data-k="${k}"><h4 onclick="togFac('${k}')"><span>${t}${s.size?` · ${s.size}`:''}</span>${s.size?`<a onclick="event.stopPropagation();limpaFac('${k}')">limpar</a>`:''}</h4>
+      ${L.length>12?`<input class="fsr" placeholder="filtrar opções" oninput="fFac(this)">`:''}
+      <div class="ops">${L.map(v=>`<label class="op ${cont.get(v)?'':'z'}"><input type="checkbox" ${s.has(v)?'checked':''} data-k="${k}" data-v="${esc(v)}" onchange="marca(this)"><span class="l" title="${esc(v)}">${esc(v)}</span><span class="n">${fmt(cont.get(v)||0)}</span></label>`).join('')}</div></div>`)}
+  $('#facs').innerHTML=h.join('')}
+const FECH={};
+function togFac(k){const e=document.querySelector(`.fac[data-k="${k}"]`);e.classList.toggle('fech');FECH[k]=e.classList.contains('fech')}
+function fFac(i){const t=nm(i.value);i.parentElement.querySelectorAll('.op').forEach(o=>o.style.display=nm(o.textContent).includes(t)?'':'none')}
+function marca(i){const k=i.dataset.k,v=i.dataset.v;SEL[k]=SEL[k]||new Set();i.checked?SEL[k].add(v):SEL[k].delete(v);tudo()}
+function limpaFac(k){delete SEL[k];tudo()}
+function limpa(){for(const k in SEL)delete SEL[k];Q='';$('#q').value='';tudo()}
+function setFiltro(k,v){for(const x in SEL)delete SEL[x];SEL[k]=new Set([v]);tudo()}
+function tudo(){filtra();facetas();chips();kpis()}
+function chips(){const h=[];for(const [k,t] of FAC){const s=SEL[k];if(s)for(const v of s)h.push(`<span class="chip" title="remover" onclick="SEL['${k}'].delete(this.dataset.v);tudo()" data-v="${esc(v)}">${esc(t)}: ${esc(v)} ×</span>`)}
+  if(Q)h.push(`<span class="chip" onclick="Q='';$('#q').value='';tudo()">busca: ${esc($('#q').value)} ×</span>`);
+  $('#chips').innerHTML=h.join('')||'<span class="cnt">Sem filtros: todas as unidades.</span>';$('#cnt').textContent=`${fmt(F.length)} de ${fmt(U.length)} unidades`}
+function kpis(){const n=F.length,c=x=>F.filter(x).length;
+  const cr=c(u=>u.crit==='CRÍTICO'),al=c(u=>u.crit==='ALTO'),td=c(u=>u.e_travada&&/DISPONÍVEL/.test(u.a_grupo||'')),fa=c(u=>u.e_travada&&!u.a_n),df=c(u=>u.cli==='DIFERENTE'),ok=c(u=>u.crit==='CONFORME');
+  $('#kp').innerHTML=[
+   ['c',cr,'Críticas',`setFiltro('crit','CRÍTICO')`],['a',al,'Altas',`setFiltro('crit','ALTO')`],
+   ['c',td,'Travada 118 · disponível Anapro',`setFiltro('alerta','Travada no 118 e DISPONÍVEL para venda no Anapro')`],
+   ['c',fa,'Travada 118 · fora do Anapro',`setFiltro('alerta','Ativa e travada no 118, inexistente no Anapro')`],
+   ['a',df,'Cliente diferente',`setFiltro('cli','DIFERENTE')`],['ok',ok,'Conformes',`setFiltro('crit','CONFORME')`]]
+   .map(([k,v,t,on])=>`<div class="k ${k}" onclick="${on}" title="filtrar"><b>${fmt(v)}<small>${pc(v,n,1)}</small></b><span>${t}</span></div>`).join('')}
+
+/* ------------------------------------------------ tabela virtual */
+const TC=[['emp','Empreendimento','1.5fr','e0'],['un','Unid.','.62fr','e0'],
+ ['ana','Status','1fr','a'],['cliA','Cliente','1.25fr','a'],
+ ['e','Situação','1.1fr','e'],['venda','Venda','.7fr','e'],['cliE','Cliente','1.25fr','e'],
+ ['m','Situação','1fr','m'],['cliM','Cliente','1.2fr','m'],
+ ['cli','Mesmo cliente?','1fr','c'],['crit','Alerta','1.45fr','c']];
+const GRP=[['',2,''],['Anapro',2,'g-a'],['ERP 118',3,'g-e'],['Movimentação financeira',2,'g-m'],['Conclusão',2,'g-c']];
+const RH=36;
+function cab(){document.documentElement.style.setProperty('--gc',TC.map(t=>t[2]).join(' '));
+  $('#th').innerHTML=GRP.map(([t,s,c])=>`<div class="grp ${c}" style="--s:${s};${t?'':'border-color:transparent'}">${t}</div>`).join('')+
+   TC.map(([k,t])=>`<div class="h ${ORDEM.c===k?'s'+(ORDEM.asc?' asc':''):''}" onclick="porCol('${k}')">${t}</div>`).join('')}
+function porCol(k){ORDEM.asc=ORDEM.c===k?!ORDEM.asc:true;ORDEM.c=k;cab();ordena();desenha()}
+const plA=g=>{if(!g)return '<span class="pl">—</span>';const c=/DISPONÍVEL/.test(g)?'d':/VENDIDA/.test(g)?'v':/PROCESSO/.test(g)?'p':'b';return `<span class="pl ${c}">${esc(g)}</span>`};
+const plE=s=>{if(!s)return '<span class="pl">—</span>';const c=/VIGENTE|QUITADA/.test(s)?'v':/DISTRATO|RETOMADA/.test(s)?'p':'b';return `<span class="pl ${c}">${esc(s.replace(' (só vendas canceladas)',''))}</span>`};
+const plM=s=>{if(!s)return '<span class="pl">—</span>';const c=/FINALIZADO|DIRETA/.test(s)?'v':/DISTRATO/.test(s)?'d':'x';return `<span class="pl ${c}">${esc(s)}</span>`};
+const clsCli=c=>/^MESMO NOME/.test(c)?'PROVÁVEL':/^MESMO/.test(c)?'MESMO':/^PROVÁVEL/.test(c)?'PROVÁVEL':/^DIFERENTE/.test(c)?'DIFERENTE':/^GENÉRICO/.test(c)?'GENÉRICO':'UM';
+const dBR=d=>d?String(d).slice(0,10).split('-').reverse().join('/'):'';
+function linha(u,i){return `<div class="tr${SELU===u?' sel':''}" style="top:${i*RH}px" onclick="abre(${i})">
+  <div class="emp" title="${esc(u.emp)}">${esc(u.emp)}</div><div class="un">${esc(u.un)}</div>
+  <div>${plA(u.a_grupo)}</div><div title="${esc(u.a_cliente)}">${esc(u.a_cliente||'')}</div>
+  <div>${plE(u.e_situacao)}${(u.e_n_vig||0)>1?' <span class="pl d">'+u.e_n_vig+'×</span>':''}</div><div>${u.e_num_venda?esc(u.e_num_venda)+'<span class="sub">'+dBR(u.e_data_venda)+'</span>':''}</div><div title="${esc(u.e_cliente)}">${esc(u.e_cliente||'')}</div>
+  <div>${plM(u.m_situacao)}<span class="sub" title="${esc(u.m_sintese)}">${esc(u.m_sintese||'')}</span></div><div title="${esc(u.m_cliente)}">${esc(u.m_cliente||'')}</div>
+  <div class="cl ${clsCli(u.cli)}" title="${esc(u.cli)}">${esc(u.cli)}</div>
+  <div title="${esc(u.alTxt.join(' · '))}"><span class="cr ${u.crit}">${u.crit}</span> <span style="font-size:11px">${esc(u.alTxt[0]||'')}</span></div></div>`}
+function desenha(){const tb=$('#tb');$('#sp').style.height=(F.length*RH)+'px';
+  if(!F.length){tb.querySelectorAll('.tr').forEach(e=>e.remove());if(!tb.querySelector('.vz'))tb.insertAdjacentHTML('beforeend','<div class="vz">Nenhuma unidade com esses filtros.</div>');return}
+  tb.querySelector('.vz')?.remove();
+  const a=Math.max(0,Math.floor(tb.scrollTop/RH)-10),b=Math.min(F.length,a+Math.ceil(tb.clientHeight/RH)+20);
+  tb.querySelectorAll('.tr').forEach(e=>e.remove());let h='';for(let i=a;i<b;i++)h+=linha(F[i],i);tb.insertAdjacentHTML('beforeend',h)}
+
+/* ------------------------------------------------ ficha da unidade */
+let SELU=null;
+const LBL_CMP={ae:'Anapro × 118',em:'118 × movfin',am:'Anapro × movfin'};
+async function abre(i){const u=F[i];SELU=u;desenha();
+  $('#drt').textContent=u.emp+' · '+u.un;$('#drs').textContent=`Presente em: ${u.presenca||'—'}${u.obs_vinculo?' · vínculo: '+u.obs_vinculo:''}`;
+  const dl=o=>'<dl>'+o.filter(x=>x[1]!==null&&x[1]!==undefined&&x[1]!=='').map(([k,v])=>`<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')+'</dl>';
+  $('#drb').innerHTML=`${u.al.length?u.al.map(([n,t])=>`<div class="al ${n}"><span class="cr ${n}">${n}</span><span>${esc(t)}</span></div>`).join(''):'<div class="al" style="background:#E8F1EC"><span class="cr CONFORME">CONFORME</span><span>Sem divergência entre os sistemas.</span></div>'}
+  <div class="c3">
+   <div class="sc" style="border-top-color:#C98088"><h5 style="color:var(--vinho)">Anapro</h5>${u.a_n?dl([['Status',u.a_status],['Estágio',u.a_estagio],['Cliente',u.a_cliente],['Data venda',u.a_data_venda],['Preço venda',u.a_preco_venda],['Classificação',u.a_classif],['Tipologia',u.a_tipologia],['Equipe',u.a_equipe],['Corretor',u.a_corretor],['Linhas',u.a_n>1?u.a_n+' (duplicada)':null]]):'<p class="note">Unidade não existe no Anapro.</p>'}</div>
+   <div class="sc" style="border-top-color:var(--vinho)"><h5 style="color:var(--vinho)">ERP 118</h5>${u.e_n_reg?dl([['Situação',u.e_situacao],['Venda de referência',u.e_num_venda?u.e_num_venda+' · '+dBR(u.e_data_venda):''],['StatusVenda',u.e_status_venda],['Finalidade',u.e_finalidade],['Escritura',u.e_status_escritura],['Cliente',u.e_cliente],['CPF',u.e_cpf],['Valor venda',u.e_valor_venda],['Tipo',u.e_tipo_venda],['Carteira',u.e_carteira],['Contrato',u.e_contrato],['Vendas no 118',`${u.e_n_reg} (vigentes: ${u.e_n_vig||0})`],['Vigentes',u.e_vendas_vigentes]]):'<p class="note">Sem nenhuma venda no 118.</p>'}</div>
+   <div class="sc" style="border-top-color:var(--azul)"><h5 style="color:var(--azul)">Movimentação financeira</h5>${u.m_n?dl([['Situação',u.m_situacao],['Fase',u.m_fase],['Síntese',u.m_sintese],['Data status',u.m_data_status],['Cliente',u.m_cliente],['CPF',u.m_cpf],['2º comprador',u.m_segundo],['Banco',u.m_banco],['Contrato CRM',u.m_contrato_crm+(u.m_via_contrato?' (mesmo do 118)':' (≠ venda do 118)')],['Contrato financ.',u.m_contrato_fin],['Minuta',u.m_data_minuta],['Retirada',u.m_data_retirada],['Registros',u.m_n]]):'<p class="note">Sem registro no movfin.</p>'}</div>
+  </div>
+  <div class="cmp"><h5>Cliente nos três sistemas · conclusão: <span class="cl ${clsCli(u.cli)}">${esc(u.cli)}</span></h5>
+   <table>${Object.entries(u.cmp).map(([k,v])=>`<tr><td style="width:150px">${LBL_CMP[k]}</td><td><b>${esc(v||'sem nome para comparar')}</b></td></tr>`).join('')||'<tr><td>Só um sistema tem cliente atual: não há o que comparar.</td></tr>'}</table>
+   <p class="note">Compara só o cliente atual de cada sistema: Anapro vendida/em aprovação, 118 com venda não cancelada, movfin fora de distrato. CPF decide entre 118 e movfin. "Igual (grafia)" = mesmos nomes com uma letra de diferença (MARTINES × MARTINS); "Provável" = mesmo primeiro nome e ao menos mais um nome em comum (casamento, sobrenome trocado); "Só 1º nome" = só o primeiro nome bate.</p></div>
+  <div class="raw" id="raw"><p class="note">Carregando linhas originais…</p></div>`;
+  $('#dr').classList.add('on');
+  try{const d=await rpc('tab_detalhe',{p_emp:u.emp,p_un:u.un});if(SELU!==u)return;
+    const rot=f=>Object.fromEntries((INFO.colunas[f]||[]).map(([c,r])=>[c,r]));
+    const bloco=(f,t,L)=>{const R=rot(f);return `<details ${L.length?'open':''}><summary>${t} · ${L.length} linha(s)</summary>${L.map(o=>`<div class="kv"><h6>linha ${o.linha} da planilha${o.vinculo?' · vínculo: '+esc(o.vinculo):''}</h6>${Object.keys(R).filter(c=>o[c]!==null&&String(o[c]).trim()!=='').map(c=>`<div>${esc(R[c])}</div><div>${esc(o[c])}</div>`).join('')}</div>`).join('')}</details>`};
+    $('#raw').innerHTML='<h5 style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--graf);margin-bottom:4px">Linhas originais (como vieram das planilhas)</h5>'+bloco('anapro','Anapro',d.anapro)+bloco('erp118','ERP 118 (todas as vendas da unidade)',d.erp118)+bloco('movfin','Movimentação financeira',d.movfin)}
+  catch(e){$('#raw').innerHTML='<p class="note">Não foi possível ler as linhas originais: '+esc(msgErro(e))+'</p>'}}
+function fechaDr(){$('#dr').classList.remove('on');SELU=null;desenha()}
+
+/* ------------------------------------------------ relatório da seleção */
+function cruz(rows,fr,fc,ordC){const C=new Map(),R=new Map();for(const u of rows){const r=fr(u),c=fc(u);R.set(r,(R.get(r)||0)+1);if(!C.has(c))C.set(c,0);C.set(c,C.get(c)+1)}
+  const cols=[...C.keys()].sort(ordC||((a,b)=>C.get(b)-C.get(a)));const rr=[...R.keys()].sort((a,b)=>R.get(b)-R.get(a));
+  const m=new Map();for(const u of rows){const k=fr(u)+'\u0001'+fc(u);m.set(k,(m.get(k)||0)+1)}return {cols,rr,R,C,get:(r,c)=>m.get(r+'\u0001'+c)||0}}
+function tabCruz(t,x,lim){const rr=lim?x.rr.slice(0,lim):x.rr;const tot=[...x.R.values()].reduce((a,b)=>a+b,0);
+  return `<div class="rs"><h4>${t}</h4><table class="rt"><thead><tr><th></th>${x.cols.map(c=>`<th>${esc(c)}</th>`).join('')}<th>Total</th></tr></thead><tbody>
+   ${rr.map(r=>`<tr><td>${esc(r)}</td>${x.cols.map(c=>{const v=x.get(r,c);return `<td>${v?fmt(v):'0'}</td>`}).join('')}<td><b>${fmt(x.R.get(r))}</b><small>${pc(x.R.get(r),tot)}</small></td></tr>`).join('')}
+   ${lim&&x.rr.length>lim?`<tr><td colspan="${x.cols.length+2}" class="note">… e mais ${x.rr.length-lim} linhas (completo no Excel)</td></tr>`:''}
+   <tr class="tot"><td>Total</td>${x.cols.map(c=>`<td>${fmt(x.C.get(c))}</td>`).join('')}<td>${fmt(tot)}</td></tr></tbody></table></div>`}
+function descFiltro(){const p=[];for(const [k,t] of FAC){const s=SEL[k];if(s&&s.size)p.push(`${t}: ${[...s].join(', ')}`)}if(Q)p.push('busca: '+$('#q').value);return p.length?p.join(' · '):'Todas as unidades (sem filtro)'}
+function htmlRelatorio(imp){const n=F.length,c=f=>F.filter(f).length;
+  const oc=(a,b)=>(ORD[a]??9)-(ORD[b]??9);
+  const k=[['c',c(u=>u.crit==='CRÍTICO'),'Críticas'],['a',c(u=>u.crit==='ALTO'),'Altas'],['',c(u=>u.crit==='MÉDIO'),'Médias'],['ok',c(u=>u.crit==='CONFORME'),'Conformes'],['a',c(u=>u.cli==='DIFERENTE'),'Cliente diferente']];
+  const al=new Map();for(const u of F)for(const [nv,t] of u.al)al.set(nv+'|'+t,(al.get(nv+'|'+t)||0)+1);
+  const alL=[...al.entries()].sort((a,b)=>oc(a[0].split('|')[0],b[0].split('|')[0])||b[1]-a[1]);
+  const cab=t=>imp?`<div class="ph"><img src="logo.png"><h2>${t}</h2><div>Tabelão Vinculado · ${esc(new Date().toLocaleString('pt-BR'))}<br>Operações — Pedro Aquino</div></div>`:'';
+  const p1=`${cab('Relatório da seleção')}<p class="note" style="margin:0 0 10px"><b>Seleção:</b> ${esc(descFiltro())} · <b>${fmt(n)} unidades</b> · bases: ${esc(baseTxt())}</p>
+   <div class="rk">${k.map(([cl,v,t])=>`<div class="k ${cl}"><b>${fmt(v)}<small>${pc(v,n,1)}</small></b><span>${t}</span></div>`).join('')}</div>
+   <div class="rg">${tabCruz('Status Anapro × situação 118',cruz(F,u=>u.ag,u=>u.es))}
+   ${tabCruz('Situação 118 × situação movfin',cruz(F,u=>u.es,u=>u.ms))}</div>
+   <div class="rg" style="margin-top:14px"><div class="rs"><h4>Alertas</h4><table class="rt"><thead><tr><th>Alerta</th><th>Nível</th><th>Unidades</th></tr></thead><tbody>${alL.map(([kk,v])=>{const [nv,t]=kk.split('|');return `<tr><td>${esc(t)}</td><td><span class="cr ${nv}">${nv}</span></td><td><b>${fmt(v)}</b><small>${pc(v,n)}</small></td></tr>`}).join('')||'<tr><td colspan="3">Nenhum alerta.</td></tr>'}</tbody></table></div>
+   ${tabCruz('Mesmo cliente? × criticidade',cruz(F,u=>u.cli,u=>u.crit,oc))}</div>`;
+  const p2=`${cab('Por empreendimento')}${tabCruz('Empreendimento × criticidade',cruz(F,u=>u.emp,u=>u.crit,oc),imp?38:200)}`;
+  return imp?`<div class="pg">${p1}</div><div class="pg">${p2}</div>`:p1+'<div style="height:14px"></div>'+p2}
+const baseTxt=()=>['anapro','erp118','movfin'].map(f=>{const c=(INFO.cargas||[]).find(x=>x.fonte===f&&x.status==='ativa');return `${{anapro:'Anapro',erp118:'118',movfin:'movfin'}[f]} ${c?c.em:'—'}`}).join(' · ');
+function abreRelatorio(){abreMd('Relatório da seleção',`<button class="btn g sm" onclick="imprime()">Imprimir / PDF</button> <button class="btn sm" onclick="exporta('xlsx')">Exportar Excel</button>`,htmlRelatorio(false))}
+function imprime(){$('#prt').innerHTML=htmlRelatorio(true);setTimeout(()=>window.print(),300)}
+function abreMd(t,a,h){$('#mdt').textContent=t;$('#mda').innerHTML=a||'';$('#mdb').innerHTML=h;$('#mb').classList.add('on')}
+function fechaMd(){$('#mb').classList.remove('on')}
+
+/* ------------------------------------------------ exportação */
+const EXP=[['Empreendimento','emp'],['Unidade','un'],['Bloco','bloco'],['Presença','presenca'],['Criticidade','crit'],['Alertas',u=>u.alTxt.join(' | ')],['Mesmo cliente?','cli'],
+ ['Anapro × 118',u=>u.cmp.ae||''],['118 × movfin',u=>u.cmp.em||''],['Anapro × movfin',u=>u.cmp.am||''],
+ ['Anapro · status','a_status'],['Anapro · grupo','a_grupo'],['Anapro · estágio','a_estagio'],['Anapro · cliente','a_cliente'],['Anapro · data venda','a_data_venda'],['Anapro · preço venda','a_preco_venda'],['Anapro · classificação','a_classif'],['Anapro · tipologia','a_tipologia'],['Anapro · equipe','a_equipe'],['Anapro · corretor','a_corretor'],['Anapro · linhas','a_n'],
+ ['118 · situação','e_situacao'],['118 · StatusVenda','e_status_venda'],['118 · Finalidade','e_finalidade'],['118 · StatusEscritura','e_status_escritura'],['118 · nº venda','e_num_venda'],['118 · contrato (obra+venda)','e_contrato'],['118 · cliente','e_cliente'],['118 · CPF','e_cpf'],['118 · data venda',u=>dBR(u.e_data_venda)],['118 · valor venda','e_valor_venda'],['118 · tipo venda','e_tipo_venda'],['118 · carteira','e_carteira'],['118 · vendas (total)','e_n_reg'],['118 · vendas vigentes','e_n_vig'],['118 · vigentes (detalhe)','e_vendas_vigentes'],
+ ['Movfin · situação','m_situacao'],['Movfin · fase','m_fase'],['Movfin · síntese','m_sintese'],['Movfin · status','m_status'],['Movfin · data status','m_data_status'],['Movfin · cliente','m_cliente'],['Movfin · CPF','m_cpf'],['Movfin · 2º comprador','m_segundo'],['Movfin · banco','m_banco'],['Movfin · contrato CRM','m_contrato_crm'],['Movfin · mesmo contrato do 118?',u=>u.m_n?(u.m_via_contrato?'sim':'não'):''],['Movfin · contrato financ.','m_contrato_fin'],['Movfin · data minuta','m_data_minuta'],['Movfin · data retirada','m_data_retirada'],['Movfin · registros','m_n'],['Observação do vínculo','obs_vinculo']];
+function exporta(){if(!window.XLSX){toast('Biblioteca do Excel ainda carregando, tente de novo.',1);return}
+  const wb=XLSX.utils.book_new();const n=F.length,c=f=>F.filter(f).length;
+  const res=[['Tabelão Vinculado · relatório da seleção'],['Gerado em',new Date().toLocaleString('pt-BR')],['Por',SES.email],['Seleção',descFiltro()],['Bases',baseTxt()],[],['Indicador','Unidades','% da seleção'],
+   ['Unidades na seleção',n,1],...['CRÍTICO','ALTO','MÉDIO','CONFORME'].map(k=>[k,c(u=>u.crit===k),n?c(u=>u.crit===k)/n:0]),['Cliente diferente',c(u=>u.cli==='DIFERENTE'),n?c(u=>u.cli==='DIFERENTE')/n:0]];
+  const ws0=XLSX.utils.aoa_to_sheet(res);ws0['!cols']=[{wch:34},{wch:60},{wch:14}];XLSX.utils.book_append_sheet(wb,ws0,'Resumo');
+  const rows=F.map(u=>Object.fromEntries(EXP.map(([t,f])=>[t,typeof f==='function'?f(u):(u[f]??'')])));
+  const ws=XLSX.utils.json_to_sheet(rows,{header:EXP.map(e=>e[0])});ws['!autofilter']={ref:ws['!ref']};ws['!cols']=EXP.map(([t])=>({wch:Math.min(42,Math.max(10,t.length+2))}));XLSX.utils.book_append_sheet(wb,ws,'Relação');
+  const cz=(t,x)=>{const a=[[t,...x.cols,'Total']];for(const r of x.rr)a.push([r,...x.cols.map(c=>x.get(r,c)),x.R.get(r)]);a.push(['Total',...x.cols.map(c=>x.C.get(c)),F.length]);return a};
+  const oc=(a,b)=>(ORD[a]??9)-(ORD[b]??9);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(cz('Empreendimento',cruz(F,u=>u.emp,u=>u.crit,oc))),'Por empreendimento');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(cz('Anapro \\ 118',cruz(F,u=>u.ag,u=>u.es))),'Anapro x 118');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(cz('118 \\ movfin',cruz(F,u=>u.es,u=>u.ms))),'118 x movfin');
+  const al=[];for(const u of F)for(const [nv,t] of u.al)al.push({Empreendimento:u.emp,Unidade:u.un,'Nível':nv,Alerta:t,'Cliente 118':u.e_cliente||'','Cliente Anapro':u.a_cliente||'','Cliente movfin':u.m_cliente||''});
+  al.sort((a,b)=>ORD[a['Nível']]-ORD[b['Nível']]);XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(al.length?al:[{Alerta:'nenhum'}]),'Alertas (1 por linha)');
+  const nmA='Tabelao_'+new Date().toISOString().slice(0,10)+'_'+fmt(n).replace(/\./g,'')+'_unid.xlsx';XLSX.writeFile(wb,nmA);toast('<b>Exportado</b> '+nmA)}
+
+/* ------------------------------------------------ admin: bases e acessos */
+const FONTES=[['anapro','Anapro','Aba "Tabelao de Unidades - Anapro" baixada do Google Sheets (.xlsx ou .csv)'],['erp118','ERP 118','Relatório 118 (ex.: 11831.xlsx), aba Consulta1'],['movfin','Movimentação financeira','MOVIMENTAÇÃO FINANCEIRA.xlsx, 1ª aba']];
+function abreAdmin(){const ult=f=>(INFO.cargas||[]).find(c=>c.fonte===f&&c.status==='ativa');
+  const loc=/^(127\.0\.0\.1|localhost)$/.test(location.hostname);
+  abreMd('Bases e acessos','',`<div class="up">${FONTES.map(([f,t,d])=>{const u=ult(f);return `<div class="upc"><h5>${t}</h5><p>${d}<br><b>No banco:</b> ${u?`${fmt(u.linhas)} linhas · ${esc(u.arquivo||'')} · ${u.em} · ${esc(u.por||'')}`:'nenhuma carga'}</p><input type="file" id="f_${f}" accept=".xlsx,.xls,.csv"><button class="btn sm" onclick="enviaFonte('${f}')">Enviar e atualizar o tabelão</button></div>`}).join('')}</div>
+   <p class="note">Cada envio substitui a base anterior inteira daquela fonte e refaz o tabelão para todo mundo. As linhas originais ficam guardadas no banco com o número da linha da planilha.</p>
+   ${loc?`<div class="frm"><button class="btn g sm" onclick="cargaLocal()">Carga inicial a partir da pasta _carga (só no computador do Pedro)</button><button class="btn g sm" onclick="reconstroi()">Só refazer o tabelão</button></div>`:`<div class="frm"><button class="btn g sm" onclick="reconstroi()">Só refazer o tabelão</button></div>`}
+   <h4 style="font-family:'Space Grotesk';color:var(--vinho);margin:18px 0 6px">Últimos envios</h4>
+   <table class="rt"><thead><tr><th>Fonte</th><th>Arquivo</th><th>Linhas</th><th>Status</th><th>Quando</th><th>Por</th></tr></thead><tbody>${(INFO.cargas||[]).map(c=>`<tr><td>${c.fonte}</td><td>${esc(c.arquivo||'')}</td><td>${fmt(c.linhas)}</td><td>${c.status}</td><td>${c.em}</td><td>${esc(c.por||'')}</td></tr>`).join('')}</tbody></table>
+   <h4 style="font-family:'Space Grotesk';color:var(--vinho);margin:18px 0 6px">De-para de empreendimentos</h4>
+   <p class="note">Quando o 118 ou o movfin usam um nome que não existe no Anapro. Com mais de um destino, vale aquele em que a unidade existe.</p>
+   <table class="rt"><thead><tr><th>Nome na fonte</th><th>Nome no Anapro</th><th>Obs.</th><th></th></tr></thead><tbody>${(INFO.depara||[]).map(d=>`<tr><td>${esc(d.origem)}</td><td>${esc(d.destino)}</td><td>${esc(d.obs||'')}</td><td><a href="#" onclick="event.preventDefault();salvaDepara('${esc(d.origem)}','${esc(d.destino)}',true)">remover</a></td></tr>`).join('')}</tbody></table>
+   <div class="frm"><input id="dpo" placeholder="nome na fonte (118/movfin)"><input id="dpd" placeholder="nome no Anapro"><button class="btn sm" onclick="salvaDepara($('#dpo').value,$('#dpd').value,false)">Incluir</button></div>
+   <h4 style="font-family:'Space Grotesk';color:var(--vinho);margin:18px 0 6px">Acessos</h4><div id="acc"><p class="note">Carregando…</p></div>
+   <div class="frm"><input id="ace" type="email" placeholder="e-mail da pessoa (precisa ter login no Supabase)"><select id="acp" style="flex:0 1 230px"><option value="leitor">leitor · consulta, relatório e exportação</option><option value="admin">admin · também sobe bases e libera acessos</option></select><button class="btn sm" onclick="salvaAcesso(true)">Liberar</button><button class="btn g sm" onclick="salvaAcesso(false)">Bloquear</button></div>`);
+  rpc('tab_usuarios').then(L=>{$('#acc').innerHTML=`<table class="rt"><thead><tr><th>E-mail</th><th>Papel</th><th>Ativo</th><th>Último acesso</th></tr></thead><tbody>${L.map(x=>`<tr><td>${esc(x.email)}</td><td>${x.papel}</td><td>${x.ativo?'sim':'bloqueado'}</td><td>${esc(x.ultimo_acesso||'—')}</td></tr>`).join('')}</tbody></table>`}).catch(e=>$('#acc').innerHTML='<p class="note">'+esc(msgErro(e))+'</p>')}
+async function salvaAcesso(at){const em=$('#ace').value.trim();if(!em)return toast('Informe o e-mail',1);
+  try{await rpc('tab_usuario_salvar',{p_email:em,p_papel:$('#acp').value,p_ativo:at});toast(at?'<b>Acesso liberado</b> '+esc(em):'<b>Acesso bloqueado</b> '+esc(em));abreAdmin()}catch(e){toast(esc(msgErro(e)),1)}}
+async function salvaDepara(o,d,rem){if(!o||!d)return toast('Informe os dois nomes',1);
+  try{await rpc('tab_depara_salvar',{p_origem:o,p_destino:d,p_obs:rem?null:'incluído por '+SES.email,p_remover:!!rem});INFO=await rpc('tab_info');abreAdmin();toast('<b>De-para salvo.</b> Clique em "Só refazer o tabelão" para aplicar.')}catch(e){toast(esc(msgErro(e)),1)}}
+
+/* leitura de planilha -> linhas {coluna: texto} */
+const snake=s=>String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+const p2=n=>String(n).padStart(2,'0');
+function celula(c){if(!c)return null;
+  if(c.t==='n'&&c.z&&XLSX.SSF.is_date(c.z)){const d=XLSX.SSF.parse_date_code(c.v);if(!d)return String(c.v);const s=`${d.y}-${p2(d.m)}-${p2(d.d)}`;return (d.H||d.M)?`${s} ${p2(d.H)}:${p2(d.M)}`:s}
+  if(c.t==='d'&&c.v instanceof Date){const d=c.v;return `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`}
+  if(c.t==='b')return c.v?'SIM':'NÃO';if(c.t==='e')return null;
+  const v=c.v;return v===undefined||v===null?null:String(v)}
+async function leArquivo(fonte,nome,buf){
+  const map=new Map((INFO.colunas[fonte]||[]).map(([c,r])=>[snake(r),c]));let head,linhas=[];
+  if(/\.csv$/i.test(nome)){const txt=new TextDecoder('utf-8').decode(buf);const p=Papa.parse(txt,{skipEmptyLines:false});head=p.data[0];
+    for(let i=1;i<p.data.length;i++){const r=p.data[i];if(!r.some(x=>String(x).trim()))continue;linhas.push({i:i+1,v:r})}
+    const exato=new Map((INFO.colunas[fonte]||[]).map(([c,r])=>[String(r).trim(),c]));const idx=head.map(h=>exato.get(String(h).trim())||map.get(snake(h))),iLin=head.findIndex(h=>snake(h)==='linha_planilha');
+    return {faltam:[...map.values()].filter(c=>!idx.includes(c)),rows:linhas.map(({i,v})=>{const o={linha:iLin>=0?parseInt(v[iLin])||i:i};idx.forEach((c,j)=>{if(c&&v[j]!==undefined&&String(v[j]).trim()!=='')o[c]=String(v[j])});return o})}}
+  const wb=XLSX.read(buf,{type:'array',cellNF:true,cellDates:false,dense:false});
+  const nomeAba=fonte==='erp118'&&wb.SheetNames.includes('Consulta1')?'Consulta1':wb.SheetNames[0];const ws=wb.Sheets[nomeAba];
+  const rg=XLSX.utils.decode_range(ws['!ref']);head=[];for(let c=rg.s.c;c<=rg.e.c;c++){const x=ws[XLSX.utils.encode_cell({r:rg.s.r,c})];head.push(x?String(x.v):'')}
+  const exato=new Map((INFO.colunas[fonte]||[]).map(([c,r])=>[String(r).trim(),c]));
+  const usados=new Set(),idx=head.map(h=>{let c=exato.get(String(h).trim())||map.get(snake(h));if(c&&usados.has(c))c=null;if(c)usados.add(c);return c});
+  for(let r=rg.s.r+1;r<=rg.e.r;r++){const o={linha:r+1};let tem=false;for(let c=rg.s.c;c<=rg.e.c;c++){const col=idx[c-rg.s.c];if(!col)continue;const v=celula(ws[XLSX.utils.encode_cell({r,c})]);if(v!==null&&v.trim()!==''){o[col]=v;tem=true}}if(tem)linhas.push(o)}
+  return {faltam:[...map.values()].filter(c=>!idx.includes(c)),rows:linhas,aba:nomeAba}}
+async function sobe(fonte,nome,buf){
+  load(true,'Lendo '+nome+'…','',2);await new Promise(r=>setTimeout(r,30));
+  const L=await leArquivo(fonte,nome,buf);
+  if(!L.rows.length)throw new Error('Nenhuma linha encontrada em '+nome);
+  if(L.faltam.length>Math.max(3,(INFO.colunas[fonte]||[]).length/3))throw new Error(`O arquivo não parece ser da base ${fonte}: faltam as colunas ${L.faltam.slice(0,8).join(', ')}…`);
+  const id=await rpc('tab_carga_iniciar',{p_fonte:fonte,p_arquivo:nome});const T=2000;let env=0;
+  for(let i=0;i<L.rows.length;i+=T){await rpc('tab_carga_lote',{p_carga:id,p_linhas:L.rows.slice(i,i+T)});env+=Math.min(T,L.rows.length-i);
+    load(true,'Enviando '+nome+'…',`${fmt(env)} de ${fmt(L.rows.length)} linhas`,100*env/L.rows.length)}
+  await rpc('tab_carga_concluir',{p_carga:id});return {linhas:L.rows.length,faltam:L.faltam}}
+async function reconstroi(){const E=['de-para do 118','de-para do movfin','juntando o Anapro','juntando o 118','juntando o movfin','fechando o tabelão'];
+  for(let i=1;i<=E.length;i++){load(true,'Atualizando o tabelão…',`${i}/${E.length} · ${E[i-1]}`,100*(i-1)/E.length);await rpc('tab_reconstruir',{p_etapa:i})}
+  load(true,'Atualizando o tabelão…','pronto',100);INFO=await rpc('tab_info');await recarrega()}
+async function enviaFonte(f){const inp=$('#f_'+f);const fl=inp&&inp.files[0];if(!fl)return toast('Escolha o arquivo primeiro',1);
+  try{const r=await sobe(f,fl.name,await fl.arrayBuffer());await reconstroi();fechaMd();toast(`<b>${fmt(r.linhas)} linhas enviadas</b>${r.faltam.length?' · colunas ausentes no arquivo: '+esc(r.faltam.join(', ')):''}`)}
+  catch(e){load(false);toast('<b>Falhou:</b> '+esc(msgErro(e)),1)}}
+async function cargaLocal(){try{for(const [f,arq] of [['anapro','anapro.csv'],['erp118','erp118.xlsx'],['movfin','movfin.xlsx']]){
+    load(true,'Baixando '+arq+'…','',1);const b=await (await fetch('../_carga/'+arq)).arrayBuffer();await sobe(f,arq,b)}
+  await reconstroi();fechaMd();toast('<b>Carga inicial concluída</b>')}catch(e){load(false);toast('<b>Falhou:</b> '+esc(msgErro(e)),1)}}
+
+/* ------------------------------------------------ início */
+async function recarrega(){load(true,'Carregando…','',5);const rows=INFO.total?await carregaUnidades():[];CORTE=INFO.corte_118||null;U=rows.map(deriva);load(false);tudo()}
+async function inicia(){load(true,'Conectando…','',2);
+  try{INFO=await rpc('tab_info')}catch(e){load(false);if(/sem_permissao/.test(e.message)){gate(msgErro(e));return}if(e.status===400||e.status===401){SES=null;sesSalva();gate('Sessão expirada. Entre de novo.');return}toast(esc(msgErro(e)),1);return}
+  $('#who').innerHTML=`${esc(INFO.eu.email)}<br>${INFO.eu.papel} · v${VERSAO} · tabelão de ${esc(INFO.reconstruido_em||'—')}`;
+  $('#badm').style.display=INFO.eu.papel==='admin'?'':'none';
+  cab();
+  if(!INFO.total){load(false);U=[];tudo();if(INFO.eu.papel==='admin')abreAdmin();else toast('O tabelão ainda não tem dados. Peça ao administrador para subir as bases.');return}
+  await recarrega()}
+let tq;$('#q').addEventListener('input',e=>{clearTimeout(tq);tq=setTimeout(()=>{Q=[...new Set(ns(e.target.value.replace(/[.\-\/](?=\d)/g,'')).split(' ').filter(Boolean))];if(!e.target.value.trim())Q='';tudo()},180)});
+document.addEventListener('keydown',e=>{if(e.key==='/'&&document.activeElement.tagName!=='INPUT'){e.preventDefault();$('#q').focus()}if(e.key==='Escape'){fechaMd();fechaDr()}});
+$('#gs').addEventListener('keydown',e=>{if(e.key==='Enter')entra()});
+$('#tb').addEventListener('scroll',()=>requestAnimationFrame(desenha));window.addEventListener('resize',()=>desenha());
+window.addEventListener('load',async()=>{cab();let s=null;try{s=JSON.parse(localStorage.getItem('tab_sb')||'null')}catch(e){}
+  if(s&&s.refresh){SES={email:s.email,refresh:s.refresh};try{await sbRenova();await inicia()}catch(e){SES=null;sesSalva();load(false);gate('Sessão expirada. Entre de novo.')}}else gate()});
+</script>
+</body>
+</html>
