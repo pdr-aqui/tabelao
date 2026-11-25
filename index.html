@@ -60,16 +60,21 @@ a{color:var(--info)}
 .grp>h2::before{content:"▾";color:var(--graf2);font-size:10px;width:10px}.grp.fech>h2::before{content:"▸"}
 .grp>h2 .n{margin-left:auto;background:var(--info);color:#fff;border-radius:9px;padding:0 6px;font-size:10px;line-height:16px}
 .grp.fech .fac{display:none}
-.fac{border-top:1px solid var(--line2);padding:7px 2px 5px}
-.fac h4{font-size:12.3px;color:var(--tinta);font-weight:500;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;gap:6px}
-.fac h4:hover{color:var(--vinho)}.fac h4 .s{background:var(--info-bg);color:var(--info);border-radius:9px;padding:0 6px;font-size:10.5px;font-weight:700}
-.fac h4 i{font-style:normal;color:var(--graf2);font-size:10px}
-.fac h4 a{font-size:11px;color:var(--info);cursor:pointer;margin-left:auto}
-.fac .bx{display:none}.fac.on .bx{display:block}
-.fac .ops{margin-top:5px;max-height:230px;overflow-y:auto}
-.fbt{display:flex;gap:10px;margin-top:5px}.fbt a{font-size:11px;color:var(--info);cursor:pointer}.fbt a:hover{text-decoration:underline}
-.op{display:flex;align-items:center;gap:7px;padding:3px 4px;border-radius:5px;cursor:pointer;font-size:12.2px;line-height:1.25}
-.op:hover{background:var(--neu-bg)}.op input{accent-color:var(--vinho)}
+.fac{margin:2px 0}
+.fac h4{font-size:12.6px;color:var(--tinta);font-weight:500;display:flex;align-items:center;cursor:pointer;user-select:none;gap:8px;padding:6px 8px;border-radius:6px}
+.fac h4::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--graf2);flex:none}
+.fac h4:hover{background:var(--neu-bg);color:var(--vinho)}.fac.on h4{background:var(--neu-bg);font-weight:600}
+.fac.tem h4::before{background:var(--info)}.fac.tem h4{color:var(--info)}
+.fac h4 .s{background:var(--info);color:#fff;border-radius:9px;padding:0 7px;font-size:10.5px;font-weight:700;line-height:17px}
+.fac h4 i{font-style:normal;color:var(--graf2);font-size:11px;margin-left:auto}
+.fac .bx{display:none;padding:2px 0 8px 14px}.fac.on .bx{display:block}
+.fac .ops{margin-top:4px;max-height:250px;overflow-y:auto}
+.fdica{font-size:11px;color:var(--graf);margin:2px 2px 6px;line-height:1.35}
+.fbt{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px;padding-left:2px}.fbt a{font-size:11.3px;color:var(--info);cursor:pointer}.fbt a:hover{text-decoration:underline}
+.op{display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:5px;cursor:pointer;font-size:12.3px;line-height:1.25;user-select:none}
+.op:hover{background:var(--neu-bg)}
+.op .bl{width:14px;height:14px;border-radius:50%;flex:none;border:2px solid var(--c,var(--graf2));display:grid;place-items:center;font-size:9px;font-weight:800;color:#fff;line-height:1}
+.op.on{background:var(--info-bg)}.op.on .bl{background:var(--c,var(--info));border-color:var(--c,var(--info))}.op.on .bl::after{content:"✓"}.op.on span.l{font-weight:600}
 .op span.l{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.op span.n{color:var(--graf);font-variant-numeric:tabular-nums;font-size:11.3px}
 .op.z{opacity:.42}
 .dot{width:8px;height:8px;border-radius:50%;flex:none;border:1px solid}
@@ -313,7 +318,7 @@ a{color:var(--info)}
 <div class="toast" id="toast"></div>
 <div id="prt"></div>
 <script>
-const VERSAO='2.2.0';
+const VERSAO='2.3.0';
 const SB={url:'https://jspfqktrbimrarimpzgh.supabase.co',key:'sb_publishable_v5q-FJsZbsufq31dqi3zlA_ddzJQ_f-'};
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -567,24 +572,24 @@ function filtra(){const act=FAC.map((f,i)=>SEL[f[0]]&&SEL[f[0]].size?i:-1).filte
   F=out;ordena()}
 function ordena(){const c=ORDEM.c,s=ORDEM.asc?1:-1;const key={emp:u=>u.emp+'|'+u.un,un:u=>u.emp+'|'+String(1000+u.pos.andarN).padStart(6,'0')+'|'+u.un,ana:u=>u.ag,cliA:u=>u.a_cliente||'',e:u=>u.es,cliE:u=>u.e_cliente||'',m:u=>u.ms,cliM:u=>u.m_cliente||'',cli:u=>u.cli,crit:u=>ORD[u.crit]+'|'+(u.alC[0]||'')+'|'+u.emp+'|'+u.un,venda:u=>u.e_data_venda||''}[c]||(u=>u.emp);
   const K=new Map(F.map(u=>[u,key(u)]));F.sort((a,b)=>{const x=K.get(a),y=K.get(b);return x<y?-s:x>y?s:0})}
-function facetas(){const h=[];
+function facetas(){const h=['<div class="fdica">Abra um filtro e <b>clique nos itens</b> para mostrar só eles. Pode marcar vários. O número ao lado é quantas unidades têm aquele item.</div>'];
   for(const [g,gt] of GRUPOS){const fs=FAC.filter(f=>f[3]===g);const nsel=fs.filter(f=>SEL[f[0]]&&SEL[f[0]].size).length;
     h.push(`<div class="grp ${GFECH.has(g)?'fech':''}"><h2 onclick="togGrp('${g}')">${gt}${nsel?`<span class="n">${nsel}</span>`:''}</h2>`);
     for(const [k,t,,,ord,cor] of fs){const s=SEL[k]||new Set();const on=FOPEN.has(k)&&!GFECH.has(g);
-      h.push(`<div class="fac ${on?'on':''}" data-k="${k}"><h4 onclick="togFac('${k}')"><span>${t}</span>${s.size?`<span class="s">${s.size}</span><a onclick="event.stopPropagation();limpaFac('${k}')">limpar</a>`:`<i>${on?'▴':'▾'}</i>`}</h4>`);
+      h.push(`<div class="fac ${on?'on':''} ${s.size?'tem':''}" data-k="${k}"><h4 onclick="togFac('${k}')"><span>${t}</span>${s.size?`<span class="s">${s.size} marcado${s.size>1?'s':''}</span>`:''}<i>${on?'▴':'▾'}</i></h4>`);
       if(on){const cont=CNT[FI[k]];const L=[...valoresFac(k)].sort(ord||((a,b)=>(cont.get(b)||0)-(cont.get(a)||0)||String(a).localeCompare(b)));
-        h.push(`<div class="bx"><div class="fbt"><a onclick="todosFac('${k}')">selecionar todos</a><a onclick="invFac('${k}')">inverter</a><a onclick="limpaFac('${k}')">nenhum</a></div>
-        ${L.length>12?`<input class="fsr" placeholder="filtrar opções" oninput="fFac(this)">`:''}
-        <div class="ops">${L.map(v=>`<label class="op ${cont.get(v)?'':'z'}"><input type="checkbox" ${s.has(v)?'checked':''} data-k="${k}" data-v="${esc(v)}" onchange="marca(this)">${cor&&cor[v]?`<span class="dot" style="background:${cor[v]};border-color:${cor[v]}"></span>`:''}<span class="l" title="${esc(v)}">${esc(v)}</span><span class="n">${fmt(cont.get(v)||0)}</span></label>`).join('')}</div></div>`)}
+        h.push(`<div class="bx">${L.length>12?`<input class="fsr" placeholder="procurar nesta lista…" oninput="fFac(this)">`:''}
+        <div class="ops">${L.map(v=>`<div class="op ${s.has(v)?'on':''} ${cont.get(v)?'':'z'}" data-k="${k}" data-v="${esc(v)}" onclick="marca(this)"${cor&&cor[v]?` style="--c:${cor[v]}"`:''}><span class="bl"></span><span class="l" title="${esc(v)}">${esc(v)}</span><span class="n">${fmt(cont.get(v)||0)}</span></div>`).join('')}</div>
+        <div class="fbt">${s.size?`<a onclick="limpaFac('${k}')">✕ desmarcar tudo</a><a onclick="invFac('${k}')" title="Mostra todas as opções, menos as marcadas">⇄ trocar: todos menos estes</a>`:`<a onclick="todosFac('${k}')">marcar todos</a>`}</div></div>`)}
       h.push('</div>')}
     h.push('</div>')}
   const sc=$('.side').scrollTop;$('#facs').innerHTML=h.join('');$('.side').scrollTop=sc}
 function togFac(k){FOPEN.has(k)?FOPEN.delete(k):FOPEN.add(k);filtra();facetas()}
 function togGrp(g){GFECH.has(g)?GFECH.delete(g):GFECH.add(g);filtra();facetas()}
 function fFac(i){const t=nm(i.value);i.parentElement.querySelectorAll('.op').forEach(o=>o.style.display=nm(o.textContent).includes(t)?'':'none')}
-function marca(i){const k=i.dataset.k,v=i.dataset.v;SEL[k]=SEL[k]||new Set();i.checked?SEL[k].add(v):SEL[k].delete(v);if(!SEL[k].size)delete SEL[k];tudo()}
+function marca(i){const k=i.dataset.k,v=i.dataset.v;SEL[k]=SEL[k]||new Set();SEL[k].has(v)?SEL[k].delete(v):SEL[k].add(v);if(!SEL[k].size)delete SEL[k];tudo()}
 function limpaFac(k){delete SEL[k];tudo()}
-function visiveis(k){const e=document.querySelector(`.fac[data-k="${k}"]`);return e?[...e.querySelectorAll('.op')].filter(o=>o.style.display!=='none').map(o=>o.querySelector('input').dataset.v):null}
+function visiveis(k){const e=document.querySelector(`.fac[data-k="${k}"]`);return e?[...e.querySelectorAll('.op')].filter(o=>o.style.display!=='none').map(o=>o.dataset.v):null}
 function todosFac(k){const vis=visiveis(k),all=valoresFac(k);SEL[k]=new Set(vis&&vis.length<all.length?vis.concat([...(SEL[k]||[])]):all);tudo()}
 function invFac(k){const s=SEL[k]||new Set();SEL[k]=new Set(valoresFac(k).filter(v=>!s.has(v)));if(!SEL[k].size)delete SEL[k];tudo()}
 function limpa(){for(const k in SEL)delete SEL[k];Q='';QTXT='';$('#q').value='';PER={ref:PER.ref,de:'',ate:''};VATUAL=null;VID=null;VSNAP=null;vsUI();tudo()}
