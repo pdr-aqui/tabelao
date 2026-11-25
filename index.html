@@ -229,6 +229,7 @@ a{color:var(--info)}
 .ld{position:fixed;inset:0;background:rgba(255,255,255,.86);z-index:40;display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px}
 .ld.on{display:flex}.ld b{font-family:'Space Grotesk';color:var(--vinho);font-size:16px}.ld .pb{width:320px;height:6px;background:var(--neu-bg);border-radius:3px;overflow:hidden}
 .ld .pb i{display:block;height:100%;background:var(--vinho);width:0;transition:width .2s}.ld span{color:var(--graf);font-size:12px}
+#sync{position:fixed;bottom:14px;left:14px;z-index:55;background:var(--info-bg);color:var(--info);border:1px solid var(--info-bd);padding:7px 12px;border-radius:8px;font-size:12px;max-width:60vw;box-shadow:0 2px 8px rgba(0,0,0,.08)}
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--tinta);color:#fff;padding:10px 16px;border-radius:8px;z-index:60;font-size:12.5px;display:none;max-width:80vw}
 .toast.on{display:block}.toast.err{background:var(--crit)}
 /* admin */
@@ -312,7 +313,7 @@ a{color:var(--info)}
 <div class="toast" id="toast"></div>
 <div id="prt"></div>
 <script>
-const VERSAO='2.1.0';
+const VERSAO='2.2.0';
 const SB={url:'https://jspfqktrbimrarimpzgh.supabase.co',key:'sb_publishable_v5q-FJsZbsufq31dqi3zlA_ddzJQ_f-'};
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -333,7 +334,8 @@ const sbH=t=>({'Content-Type':'application/json',apikey:SB.key,...(t?{Authorizat
 async function sbCall(url,opt){const r=await fetch(url,opt);const tx=await r.text();let j=null;try{j=tx?JSON.parse(tx):null}catch(e){}
   if(!r.ok){const e=new Error((j&&(j.message||j.error_description||j.msg||j.error))||('HTTP '+r.status));e.status=r.status;throw e}return j}
 const sesSalva=()=>{try{SES?localStorage.setItem('tab_sb',JSON.stringify({email:SES.email,refresh:SES.refresh})):localStorage.removeItem('tab_sb')}catch(e){}};
-async function sbRenova(){const j=await sbCall(SB.url+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:sbH(),body:JSON.stringify({refresh_token:SES.refresh})});SES.access=j.access_token;SES.refresh=j.refresh_token;sesSalva()}
+let _ren=null;function sbRenova(){return _ren||(_ren=_sbRenova().finally(()=>_ren=null))}
+async function _sbRenova(){const j=await sbCall(SB.url+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:sbH(),body:JSON.stringify({refresh_token:SES.refresh})});SES.access=j.access_token;SES.refresh=j.refresh_token;sesSalva()}
 async function rpc(fn,args={}){if(!SES.access)await sbRenova();
   const f=()=>sbCall(SB.url+'/rest/v1/rpc/'+fn,{method:'POST',headers:sbH(SES.access),body:JSON.stringify(args)});
   try{return await f()}catch(e){if(e.status===401){await sbRenova();return f()}throw e}}
@@ -359,15 +361,17 @@ const COLS=['emp','un','bloco','presenca','obs_vinculo','a_n','a_status','a_grup
  'm_n','m_situacao','m_fase','m_sintese','m_status','m_data_status','m_cliente','m_cpf','m_segundo','m_banco','m_contrato_crm','m_contrato_fin','m_data_minuta','m_data_retirada','m_via_contrato',
  'c_n','c_tipo','c_tipologia','c_especial','c_area','c_cat_uso','c_classif','c_entrega','c_regiao','c_obra','c_endereco','c_valor_tabela','c_na_sv'];
 let U=[],F=[],CORTE=null,REBUILD=null;
-async function carregaUnidades(){
-  const cache=await idbGet('unidades');
-  if(cache&&cache.versao===INFO.versao&&cache.rows)return cache.rows;
-  const tot=INFO.total||0,P=5000,pags=Math.max(1,Math.ceil(tot/P));let feitas=0;
-  load(true,'Baixando o tabelão do banco…',`${fmt(tot)} unidades`,0);
-  const tarefas=[...Array(pags).keys()];const res=new Array(pags);
-  async function w(){while(tarefas.length){const i=tarefas.shift();res[i]=(await rpc('tab_unidades',{p_offset:i*P,p_limit:P})).rows;feitas++;load(true,'Baixando o tabelão do banco…',`${fmt(Math.min(feitas*P,tot))} de ${fmt(tot)} unidades`,100*feitas/pags)}}
-  await Promise.all([w(),w(),w()]);const rows=res.flat();
-  await idbSet('unidades',{versao:INFO.versao,rows});return rows}
+/* baixa em páginas menores, 4 de cada vez, e tenta de novo a página que falhar (a API do Supabase às vezes engasga) */
+async function baixaUnidades(prog){
+  const tot=INFO.total||0,P=2500,pags=Math.max(1,Math.ceil(tot/P));let feitas=0;
+  const tarefas=[...Array(pags).keys()];const res=new Array(pags);prog(0,tot,'');
+  async function pag(i){for(let t=1;;t++){try{return (await rpc('tab_unidades',{p_offset:i*P,p_limit:P})).rows}
+    catch(e){if(t>=4||/sem_permissao/.test(e.message))throw e;prog(feitas*P,tot,'o banco demorou; tentando de novo ('+t+'/3)…');await new Promise(r=>setTimeout(r,1500*t))}}}
+  async function w(){while(tarefas.length){const i=tarefas.shift();res[i]=await pag(i);feitas++;prog(Math.min(feitas*P,tot),tot,'')}}
+  await Promise.all([w(),w(),w(),w()]);const rows=res.flat();
+  await idbSet('unidades',{versao:INFO.versao,rows,info:{versao:INFO.versao,corte_118:INFO.corte_118,reconstruido_em:INFO.reconstruido_em}});return rows}
+/* aviso discreto de sincronização (canto inferior esquerdo) */
+function sync(m){let s=$('#sync');if(!s){s=document.createElement('div');s.id='sync';document.body.appendChild(s)}s.innerHTML=m||'';s.style.display=m?'':'none'}
 
 /* ------------------------------------------------ comparação de clientes */
 const STOP=new Set(['DE','DA','DO','DAS','DOS','E']);
@@ -985,32 +989,69 @@ async function cargaLocal(){try{for(const [f,arq] of (location.search.includes('
   await reconstroi();fechaMd();toast('<b>Carga inicial concluída</b>')}catch(e){load(false);toast('<b>Falhou:</b> '+esc(msgErro(e)),1)}}
 
 /* ------------------------------------------------ histórico: grava o resumo desta versão e lê a anterior */
-async function historico(){if(!INFO.versao||!U.length)return;
+async function historico(){if(!INFO.versao||!U.length||UVER!==INFO.versao)return;
   try{const k='tab_hist_'+INFO.versao+'_'+VERSAO;if(!localStorage.getItem(k)){const L=contaNiv(U),ac={},cl={};for(const u of U){for(const c of u.alC)ac[c]=(ac[c]||0)+1;cl[u.cli]=(cl[u.cli]||0)+1}
       const niv={};for(const u of U)if(u.pend)niv[u.ch]=u.crit[0]==='C'?'C':u.crit==='ALTO'?'A':'M';
       await rpc('tab_hist_salvar',{p_versao:INFO.versao,p_app:VERSAO,p_resumo:{total:U.length,niveis:L,alertas:ac,clientes:cl},p_niveis:niv});localStorage.setItem(k,'1')}
     HIST=await rpc('tab_hist',{p_versao:INFO.versao})}catch(e){HIST=null}}
 
 /* ------------------------------------------------ início */
-async function recarrega(){load(true,'Carregando…','',5);const rows=INFO.total?await carregaUnidades():[];CORTE=INFO.corte_118||null;REBUILD=isoHM(INFO.reconstruido_em);
-  load(true,'Conferindo as unidades…','',90);await new Promise(r=>setTimeout(r,20));
-  try{TRAT=new Map((await rpc('tab_tratativas')).map(([e,un,s,no,por,em])=>[e+' · '+un,{status:s,nota:no,por,em}]))}catch(e){TRAT=new Map()}
-  U=rows.map(deriva);for(const u of U)u.fv=FAC.map(f=>f[2](u));for(const k in ALLV)delete ALLV[k];
-  load(false);tudo();historico().then(()=>{if(TAB==='ov')visao()})}
+/* mostra um conjunto de linhas (info = de qual versão do tabelão elas são) */
+let UVER=null;
+function mostra(rows,info){CORTE=info.corte_118||null;REBUILD=isoHM(info.reconstruido_em);UVER=info.versao;
+  U=rows.map(deriva);for(const u of U)u.fv=FAC.map(f=>f[2](u));for(const k in ALLV)delete ALLV[k];tudo()}
+async function carregaTrat(){try{TRAT=new Map((await rpc('tab_tratativas')).map(([e,un,s,no,por,em])=>[e+' · '+un,{status:s,nota:no,por,em}]))}catch(e){if(!TRAT)TRAT=new Map()}}
+/* abre na hora com a cópia salva no navegador; se o banco tiver versão nova, baixa por trás e troca quando terminar */
+async function recarrega(){
+  if(!INFO.total){U=[];tudo();return}
+  const cache=await idbGet('unidades');const atual=cache&&cache.rows&&cache.versao===INFO.versao;
+  if(atual){if(UVER!==INFO.versao){load(true,'Abrindo…','',60);await new Promise(r=>setTimeout(r,20));await carregaTrat();mostra(cache.rows,cache.info||INFO);load(false)}
+    else{await carregaTrat();tudo()}
+    sync('');historico().then(()=>{if(TAB==='ov')visao()});return}
+  const temCopia=U.length||(cache&&cache.rows);
+  if(temCopia){
+    if(!U.length){load(true,'Abrindo a cópia salva…','',60);await new Promise(r=>setTimeout(r,20));if(!TRAT)TRAT=new Map();mostra(cache.rows,cache.info||{});load(false)}
+    const de=(cache&&cache.info&&cache.info.reconstruido_em)||'versão anterior';
+    try{const rows=await baixaUnidades((f,t,m)=>sync(`<b>Atualizando o tabelão</b> · mostrando a cópia de ${esc(de)} · ${fmt(f)} de ${fmt(t)}${m?' · '+esc(m):''}`));
+      await carregaTrat();mostra(rows,INFO);sync('');toast('<b>Tabelão atualizado</b> · montado em '+esc(INFO.reconstruido_em||''));
+      historico().then(()=>{if(TAB==='ov')visao()})}
+    catch(e){sync(`Não deu para baixar a versão nova (${esc(msgErro(e))}). Mostrando a cópia de ${esc(de)}. <a href="#" onclick="recarrega();return false">Tentar de novo</a>`)}
+    return}
+  try{const rows=await baixaUnidades((f,t,m)=>load(true,'Baixando o tabelão do banco…',`${fmt(f)} de ${fmt(t)} unidades${m?' · '+m:''}`,t?100*f/t:0));
+    load(true,'Conferindo as unidades…','',95);await new Promise(r=>setTimeout(r,20));await carregaTrat();mostra(rows,INFO);load(false);
+    historico().then(()=>{if(TAB==='ov')visao()})}
+  catch(e){load(false);toast('<b>Não deu para baixar o tabelão:</b> '+esc(msgErro(e))+' <a href="#" style="color:#fff" onclick="recarrega();return false">Tentar de novo</a>',1)}}
 async function inicia(){load(true,'Conectando…','',2);
-  try{INFO=await rpc('tab_info')}catch(e){load(false);if(/sem_permissao/.test(e.message)){gate(msgErro(e));return}if(e.status===400||e.status===401){SES=null;sesSalva();gate('Sessão expirada. Entre de novo.');return}toast(esc(msgErro(e)),1);return}
+  /* se o banco demorar a responder, abre com a cópia salva enquanto espera */
+  const pInfo=rpc('tab_info');pInfo.catch(()=>{});let cedo=false;
+  const cache=await idbGet('unidades');let cinfo=null;try{cinfo=JSON.parse(localStorage.getItem('tab_info')||'null')}catch(e){}
+  if(cache&&cache.rows&&cinfo&&cinfo.eu&&SES&&cinfo.eu.email===SES.email){
+    const ok=await Promise.race([pInfo.then(()=>1,()=>1),new Promise(r=>setTimeout(()=>r(0),2500))]);
+    if(!ok){cedo=true;INFO=cinfo;cabecalho();estadoInicial(false);load(true,'Abrindo a cópia salva…','',60);await new Promise(r=>setTimeout(r,20));
+      TRAT=new Map();mostra(cache.rows,cache.info||cinfo);load(false);sync('<b>Conectando ao banco…</b> o Supabase está lento; mostrando a cópia salva de '+esc((cache.info&&cache.info.reconstruido_em)||'—'))}}
+  try{INFO=await pInfo}catch(e){load(false);
+    if(/sem_permissao/.test(e.message)){await idbSet('unidades',null);localStorage.removeItem('tab_info');sync('');gate(msgErro(e));return}
+    if(e.status===400||e.status===401){SES=null;sesSalva();sync('');gate('Sessão expirada. Entre de novo.');return}
+    if(cedo){sync('Sem resposta do banco ('+esc(msgErro(e))+'). Mostrando a cópia salva. <a href="#" onclick="location.reload();return false">Tentar de novo</a>');return}
+    toast(esc(msgErro(e)),1);return}
+  try{localStorage.setItem('tab_info',JSON.stringify({eu:INFO.eu,versao:INFO.versao,total:INFO.total,corte_118:INFO.corte_118,reconstruido_em:INFO.reconstruido_em,cargas:INFO.cargas,colunas:INFO.colunas,depara:INFO.depara}))}catch(e){}
+  cabecalho();
+  if(cedo){carregaVisoes();if(INFO.total){sync('<b>Conectado.</b> Conferindo se há versão nova…');await recarrega()}return}
+  await carregaVisoes();estadoInicial(true);
+  if(!INFO.total){load(false);U=[];tudo();if(INFO.eu.papel==='admin')abreAdmin();else toast('O tabelão ainda não tem dados. Peça ao administrador para subir as bases.');return}
+  await recarrega()}
+function cabecalho(){
   const em=INFO.eu.email||'';$('#av').textContent=em.slice(0,1).toUpperCase();$('#whoN').textContent=em.split('@')[0];
   $('#whoD').innerHTML=`<b>${esc(em)}</b><br>${{admin:'Administrador',editor:'Editor (registra tratativas)',leitor:'Leitor (consulta)'}[INFO.eu.papel]||INFO.eu.papel} · versão ${VERSAO}<br>Tabelão montado em ${esc(INFO.reconstruido_em||'—')}`;
   $('#badm').style.display=INFO.eu.papel==='admin'?'':'none';
-  await carregaVisoes();
-  // abre: link compartilhado > visão padrão > último estado
-  const lk=leLink(),pad=VIS.find(v=>v.padrao&&v.minha);let ini='ov';
+}
+// abre: link compartilhado > visão padrão > último estado (sem banco ainda, a visão padrão fica de fora)
+function estadoInicial(comVisoes){
+  const lk=leLink(),pad=comVisoes?VIS.find(v=>v.padrao&&v.minha):null;let ini='ov';
   if(lk){aplicaEstado(lk);ini=lk.t||'un';VATUAL='link compartilhado';history.replaceState(null,'',location.pathname)}
   else if(pad){aplicaEstado(pad.filtros);ini=pad.filtros.t||'un';VATUAL=pad.nome;VID='v'+pad.id;VSNAP=snapEst()}
   else{try{const e=JSON.parse(localStorage.getItem('tab_estado')||'null');if(e){aplicaEstado(e);ini=e.t||'ov';VATUAL=e.v||null;VID=e.vid||null;VSNAP=e.vs||null}}catch(e){}}
-  vsUI();aba(ini,true);
-  if(!INFO.total){load(false);U=[];tudo();if(INFO.eu.papel==='admin')abreAdmin();else toast('O tabelão ainda não tem dados. Peça ao administrador para subir as bases.');return}
-  await recarrega()}
+  vsUI();aba(ini,true)}
 let tq;$('#q').addEventListener('input',e=>{clearTimeout(tq);tq=setTimeout(()=>{QTXT=e.target.value.trim();Q=QTXT?[...new Set(ns(QTXT.replace(/[.\-\/](?=\d)/g,'')).split(' ').filter(Boolean))]:'';VATUAL=null;tudo()},180)});
 document.querySelectorAll('#pqk button').forEach(b=>b.onclick=()=>setPer(b.dataset.d));
 document.addEventListener('keydown',e=>{const tag=document.activeElement.tagName;const digitando=/INPUT|TEXTAREA|SELECT/.test(tag);
@@ -1024,7 +1065,7 @@ $('#tb').addEventListener('scroll',()=>requestAnimationFrame(desenha));window.ad
 const _base=basePassa;basePassa=u=>(!SELD||SELD.has(u.ch))&&_base(u);
 const _limpa=limpa;limpa=()=>{SELD=null;QD=null;_limpa()};
 window.addEventListener('load',async()=>{cab();aba('ov',true);let s=null;try{s=JSON.parse(localStorage.getItem('tab_sb')||'null')}catch(e){}
-  if(s&&s.refresh){SES={email:s.email,refresh:s.refresh};try{await sbRenova();await inicia()}catch(e){SES=null;sesSalva();load(false);gate('Sessão expirada. Entre de novo.')}}else gate()});
+  if(s&&s.refresh){SES={email:s.email,refresh:s.refresh};try{await inicia()}catch(e){SES=null;sesSalva();load(false);gate('Sessão expirada. Entre de novo.')}}else gate()});
 </script>
 </body>
 </html>
