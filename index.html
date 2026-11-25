@@ -155,7 +155,7 @@ a{color:var(--info)}
 .tr .emp{font-weight:600}.tr .un{font-family:'Space Grotesk';font-weight:600;font-variant-numeric:tabular-nums}
 .sub{display:block;font-size:10.8px;color:var(--graf);overflow:hidden;text-overflow:ellipsis;line-height:1.2}
 .pl{display:inline-block;padding:1px 7px;border-radius:9px;font-size:10.8px;font-weight:600;white-space:nowrap;background:var(--neu-bg);color:var(--neu)}
-.pl.v{background:var(--ok-bg);color:var(--ok)}.pl.d{background:var(--crit-bg);color:var(--crit)}.pl.p{background:var(--med-bg);color:var(--med)}.pl.x{background:var(--info-bg);color:var(--info)}
+.pl.v{background:var(--ok-bg);color:var(--ok)}.pl.d{background:var(--crit-bg);color:var(--crit)}.pl.p{background:var(--med-bg);color:var(--med)}.pl.inf{background:var(--info-bg);color:var(--info)}
 .cr{display:inline-block;padding:1px 7px;border-radius:9px;font-size:10.5px;font-weight:700;letter-spacing:.03em;border:1px solid}
 .cr.CRÍTICO{background:var(--crit);border-color:var(--crit);color:#fff}.cr.ALTO{background:var(--alto-bg);border-color:var(--alto-bd);color:var(--alto)}.cr.MÉDIO{background:var(--med-bg);border-color:var(--med-bd);color:var(--med)}
 .cr.CONFORME{background:var(--ok-bg);border-color:var(--ok-bd);color:var(--ok)}.cr.INCONCLUSIVO{background:var(--neu-bg);border-color:var(--neu-bd);color:var(--neu)}
@@ -312,7 +312,7 @@ a{color:var(--info)}
 <div class="toast" id="toast"></div>
 <div id="prt"></div>
 <script>
-const VERSAO='2.0.1';
+const VERSAO='2.1.0';
 const SB={url:'https://jspfqktrbimrarimpzgh.supabase.co',key:'sb_publishable_v5q-FJsZbsufq31dqi3zlA_ddzJQ_f-'};
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -397,7 +397,7 @@ function cmpPessoa(x,princ,seg){if(seg&&bom(cmpNomes(seg,princ)))seg=null;const 
 const bom=r=>r&&RANK[r]>=4;
 const ns=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim();
 const generico=s=>/CLIENTE PADR/i.test(nm(s));
-const CLI_OK=new Set(['MESMO CLIENTE','MESMO CLIENTE · nome mudou (CPF confirma)','MESMO CONTRATO · 2º comprador']);
+const CLI_OK=new Set(['MESMO CLIENTE','MESMO CLIENTE · nome mudou (CPF confirma)','MESMO CONTRATO · casal / outro comprador']);
 const CLI_SEM=new Set(['UM SISTEMA SÓ','SEM CLIENTE ATUAL','GENÉRICO no Anapro']);
 
 /* ------------------------------------------------ andar, bloco e final a partir do código da unidade */
@@ -450,17 +450,24 @@ function deriva(r){
   const cE=u.e_travada?u.e_cliente:null;
   const cM=u.m_cliente&&u.m_situacao&&u.m_situacao!=='DISTRATO'?u.m_cliente:null;
   const p={};
+  /* compradores do mesmo contrato: a lista do Anapro (nomes separados por vírgula) e o titular + 2º do movfin.
+     Se cada lado bate com uma pessoa diferente do mesmo grupo, é o mesmo contrato (casal/co-compradores), não cliente diferente. */
+  const GR=[];const pa=partes(u.a_cliente);if(pa.length>1&&!generico(u.a_cliente))GR.push(pa);
+  if(u.m_cliente&&u.m_segundo)GR.push([u.m_cliente,u.m_segundo]);
+  const noGr=(g,x)=>g.findIndex(n=>bom(cmpNomes(x,n)));
+  const casal=(x,y)=>GR.some(g=>{const i=noGr(g,x),j=noGr(g,y);return i>=0&&j>=0});
   if(cA&&cE){if(generico(cA))p.ae='GENÉRICO';else{const r=cmpNomes(cA,cE);
-    if(!bom(r)&&u.m_segundo&&!bom(cmpNomes(u.m_segundo,u.m_cliente))&&bom(cmpNomes(cA,u.m_segundo))&&bom(cmpNomes(cE,u.m_cliente)))p.ae='OUTRO COMPRADOR (Anapro = 2º comprador do movfin)';else p.ae=r}}
+    p.ae=!bom(r)&&casal(cA,cE)?'OUTRO COMPRADOR do mesmo contrato':r}}
   const cpf=c=>{const d=String(c||'').replace(/\D/g,'');return d.length===10||d.length===9?d.padStart(11,'0'):d.length===11?d:null};
   const ce=cpf(u.e_cpf),cm=cpf(u.m_cpf);
   if(cE&&cM){if(ce&&cm){const r=cmpNomes(cE,cM);
       if(ce===cm)p.em=/^IGUAL/.test(r||'')?'MESMO CPF':'MESMO CPF · nome mudou ('+(r||'?').toLowerCase()+')';
       else if(/^IGUAL/.test(r||''))p.em='CPF DIFERENTE · mesmo nome';
       else if(u.m_segundo&&bom(cmpNomes(cE,u.m_segundo)))p.em='CPF DIFERENTE · 118 = 2º comprador do movfin';
+      else if(casal(cE,cM))p.em='CPF DIFERENTE · OUTRO COMPRADOR do mesmo contrato';
       else p.em='CPF DIFERENTE'}
-    else{const x=cmpPessoa(cE,cM,u.m_segundo);p.em=x.seg?x.r+' · 2º comprador':x.r}}
-  if(cA&&cM){if(generico(cA))p.am='GENÉRICO';else{const x=cmpPessoa(cA,cM,u.m_segundo);p.am=x.seg?x.r+' · 2º comprador':x.r}}
+    else{const x=cmpPessoa(cE,cM,u.m_segundo);p.em=x.seg?x.r+' · 2º comprador':!bom(x.r)&&casal(cE,cM)?'OUTRO COMPRADOR do mesmo contrato':x.r}}
+  if(cA&&cM){if(generico(cA))p.am='GENÉRICO';else{const x=cmpPessoa(cA,cM,u.m_segundo);p.am=x.seg?x.r+' · 2º comprador':!bom(x.r)&&casal(cA,cM)?'OUTRO COMPRADOR do mesmo contrato':x.r}}
   u.cmp=p;const v=Object.values(p).filter(x=>x&&x!=='GENÉRICO');
   const tem=re=>v.some(x=>re.test(x));
   const n=[cA&&!generico(cA),cE,cM].filter(Boolean).length;
@@ -470,7 +477,7 @@ function deriva(r){
   else if(tem(/CPF DIFERENTE · mesmo nome/))u.cli='MESMO NOME, CPF DIFERENTE';
   else if(tem(/^SÓ 1º NOME/))u.cli='PROVÁVEL MESMO (só o 1º nome bate)';
   else if(tem(/NOME AMPLIADO|NOME ALTERADO|nome mudou/))u.cli=tem(/^MESMO CPF/)?'MESMO CLIENTE · nome mudou (CPF confirma)':'PROVÁVEL MESMO · nome mudou (casamento?)';
-  else if(tem(/2º comprador|OUTRO COMPRADOR/))u.cli='MESMO CONTRATO · 2º comprador';
+  else if(tem(/2º comprador|OUTRO COMPRADOR/))u.cli='MESMO CONTRATO · casal / outro comprador';
   else if(v.length)u.cli='MESMO CLIENTE';else u.cli='GENÉRICO no Anapro';
   u.cliNome=cE||cM||cA||u.e_cliente||u.m_cliente||u.a_cliente||'';
   // alertas: [nível, código, detalhe]
@@ -788,7 +795,7 @@ function cab(){document.documentElement.style.setProperty('--gc',TC.map(t=>t[2])
 function porCol(k){ORDEM.asc=ORDEM.c===k?!ORDEM.asc:true;ORDEM.c=k;cab();ordena();desenha();salvaEstado()}
 const plA=g=>{if(!g)return '<span class="pl">—</span>';const c=/DISPONÍVEL/.test(g)?'d':/VENDIDA/.test(g)?'v':/PROCESSO/.test(g)?'p':'b';return `<span class="pl ${c}">${esc(g)}</span>`};
 const plE=s=>{if(!s)return '<span class="pl">—</span>';const c=/VIGENTE|QUITADA/.test(s)?'v':/DISTRATO|RETOMADA/.test(s)?'p':'b';return `<span class="pl ${c}">${esc(s.replace(/\s*\(.*\)$/,''))}</span>`};
-const plM=s=>{if(!s)return '<span class="pl">—</span>';const c=/FINALIZADO|DIRETA/.test(s)?'v':/DISTRATO/.test(s)?'d':'x';return `<span class="pl ${c}">${esc(s)}</span>`};
+const plM=s=>{if(!s)return '<span class="pl">—</span>';const c=/FINALIZADO|DIRETA/.test(s)?'v':/DISTRATO/.test(s)?'d':'inf';return `<span class="pl ${c}">${esc(s)}</span>`};
 const clsCli=c=>/^MESMO NOME/.test(c)?'PROVÁVEL':/^MESMO/.test(c)?'MESMO':/^PROVÁVEL/.test(c)?'PROVÁVEL':/^DIFERENTE/.test(c)?'DIFERENTE':/^GENÉRICO/.test(c)?'GENÉRICO':'UM';
 function ttag(u){const t=TRAT.get(u.ch);if(!t)return '';const s=tratSit(u);const c=s==='Corrigida, mas o alerta continua'?'volta':t.status;return `<span class="tt ${c}" title="${esc(s+(t.nota?' · '+t.nota:'')+' · '+t.por)}">${esc(s==='Corrigida, mas o alerta continua'?'corrigida?':TS[t.status][0].toLowerCase())}</span>`}
 function linha(u,i){return `<div class="tr ${u.crit}${SELU===u?' sel':''}" style="top:${i*RH}px" onclick="abre(${i})">
