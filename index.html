@@ -312,7 +312,7 @@ a{color:var(--info)}
 <div class="toast" id="toast"></div>
 <div id="prt"></div>
 <script>
-const VERSAO='2.0.0';
+const VERSAO='2.0.1';
 const SB={url:'https://jspfqktrbimrarimpzgh.supabase.co',key:'sb_publishable_v5q-FJsZbsufq31dqi3zlA_ddzJQ_f-'};
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -525,6 +525,7 @@ const FAC=[
  ['pres','Presença nos sistemas',u=>u.presenca,'uni'],
  ['ag','Status Anapro',u=>u.ag,'ana'],
  ['as','Status Anapro (original)',u=>u.a_status||'— sem Anapro','ana'],
+ ['sv','Status da venda 118 (Normal/Quitado/Cancelada)',u=>u.e_status_venda||'— sem 118','erp'],
  ['es','Situação 118',u=>u.es,'erp'],
  ['ef','Finalidade 118',u=>u.e_finalidade||'—','erp'],
  ['ee','Status escritura 118',u=>u.e_status_escritura||'—','erp'],
